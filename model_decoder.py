@@ -105,6 +105,7 @@ class PCDDecoder(nn.Module):
         soft_tokens: torch.Tensor,
         prompt_ids: torch.Tensor | None = None,
         max_new_tokens: int = 128,
+        repetition_penalty: float = 1.3,
     ) -> list[str]:
         """Generate text given soft tokens and an optional text prompt.
 
@@ -112,6 +113,8 @@ class PCDDecoder(nn.Module):
             soft_tokens: [B, n_soft, d] encoded activations
             prompt_ids: [B, q_len] optional prompt token IDs (None = generate from soft tokens only)
             max_new_tokens: maximum tokens to generate
+            repetition_penalty: multiplicative penalty for previously generated tokens
+                (>1.0 discourages repetition, 1.0 = no penalty)
 
         Returns:
             List of generated strings
@@ -160,6 +163,17 @@ class PCDDecoder(nn.Module):
             )
             past_key_values = outputs.past_key_values
             next_token_logits = outputs.logits[:, -1, :]
+
+            # Apply repetition penalty to previously generated tokens
+            if repetition_penalty != 1.0 and len(generated_ids) > 0:
+                prev_tokens = torch.cat(generated_ids, dim=1)  # [B, gen_so_far]
+                for b in range(B):
+                    for token_id in prev_tokens[b].unique():
+                        if next_token_logits[b, token_id] > 0:
+                            next_token_logits[b, token_id] /= repetition_penalty
+                        else:
+                            next_token_logits[b, token_id] *= repetition_penalty
+
             next_token = next_token_logits.argmax(dim=-1, keepdim=True)
 
             generated_ids.append(next_token)

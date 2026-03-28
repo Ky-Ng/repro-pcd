@@ -50,21 +50,24 @@ class PCDPipeline:
         self.decoder.model.eval()
 
     def _encode_input(self, input_text: str):
-        """Tokenize, run subject model, and encode activations."""
+        """Tokenize, run subject model, and encode activations.
+
+        No padding. Feed the raw tokens to the subject model and extract
+        the last middle_len positions (or all tokens if shorter). This
+        avoids any train/inference distribution mismatch from padding.
+        """
         input_ids = self.tokenizer.encode(input_text, add_special_tokens=True)
-
-        min_len = self.config.prefix_len + self.config.middle_len
-        if len(input_ids) < min_len:
-            pad_len = min_len - len(input_ids)
-            input_ids = [self.tokenizer.pad_token_id] * pad_len + input_ids
-
-        if len(input_ids) > min_len:
-            input_ids = input_ids[-min_len:]
+        n_tokens = len(input_ids)
 
         input_tensor = torch.tensor([input_ids], device=self.config.device)
 
+        # Extract the last middle_len positions as "middle", everything
+        # before that is treated as prefix context.
+        middle_len = min(n_tokens, self.config.middle_len)
+        prefix_len = n_tokens - middle_len
+
         activations = self.subject.get_middle_activations(
-            input_tensor, self.config.prefix_len, self.config.middle_len
+            input_tensor, prefix_len, middle_len,
         )
         encoded, enc_info = self.encoder(activations)
         top_vals, top_idx = self.encoder.get_top_concepts(activations)

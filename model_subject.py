@@ -51,7 +51,8 @@ class SubjectModel:
 
     @torch.no_grad()
     def get_middle_activations(
-        self, input_ids: torch.Tensor, prefix_len: int, middle_len: int
+        self, input_ids: torch.Tensor, prefix_len: int, middle_len: int,
+        attention_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Run the subject model and return activations for middle token positions.
 
@@ -59,11 +60,13 @@ class SubjectModel:
             input_ids: [batch, prefix_len + middle_len] token IDs
             prefix_len: number of prefix tokens
             middle_len: number of middle tokens
+            attention_mask: [batch, prefix_len + middle_len] optional mask
+                (1 for real tokens, 0 for padding)
 
         Returns:
             Tensor of shape [batch, middle_len, hidden_dim]
         """
-        self.model(input_ids)
+        self.model(input_ids, attention_mask=attention_mask)
         # Extract only the middle token positions
         acts = self._activations[:, prefix_len:prefix_len + middle_len, :]
         return acts.detach()

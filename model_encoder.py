@@ -37,6 +37,12 @@ class SparseEncoder(nn.Module):
         # Initialize: W_enc rows unit-normalized, W_emb = W_enc^T
         self._initialize_weights()
 
+        # Running statistics for pre-encoder activation normalization
+        self.register_buffer("running_mean", torch.zeros(d))
+        self.register_buffer("running_var", torch.ones(d))
+        self.register_buffer("n_samples", torch.tensor(0, dtype=torch.long))
+        self.norm_momentum = 0.01
+
         # Dead concept tracking
         self.register_buffer(
             "concept_usage", torch.zeros(m, dtype=torch.long)
@@ -59,6 +65,30 @@ class SparseEncoder(nn.Module):
             # W_emb initialized as W_enc^T
             self.W_emb.weight.copy_(self.W_enc.weight.t())
 
+    def _normalize_activations(self, activations: torch.Tensor) -> torch.Tensor:
+        """Normalize activations via centering + per-token L2 normalization.
+
+        Subtracts the running mean (learned during training) to center, then
+        normalizes each token's activation vector to unit norm. This makes the
+        encoder invariant to the global magnitude of activations, which varies
+        drastically between short and long sequences.
+        """
+        if self.training:
+            batch_mean = activations.mean(dim=(0, 1))  # [d]
+            batch_var = activations.var(dim=(0, 1))     # [d]
+
+            if self.n_samples == 0:
+                self.running_mean.copy_(batch_mean)
+                self.running_var.copy_(batch_var)
+            else:
+                self.running_mean.lerp_(batch_mean, self.norm_momentum)
+                self.running_var.lerp_(batch_var, self.norm_momentum)
+            self.n_samples += 1
+
+        # Center using running mean, then L2-normalize each token vector
+        centered = activations - self.running_mean
+        return centered / (centered.norm(dim=-1, keepdim=True) + 1e-8)
+
     def forward(
         self, activations: torch.Tensor
     ) -> tuple[torch.Tensor, dict]:
@@ -73,10 +103,13 @@ class SparseEncoder(nn.Module):
         """
         B, T, d = activations.shape
 
+        # Normalize before encoding so concept values stay in a reasonable range
+        activations = self._normalize_activations(activations)
+
         # Project to concept space: [B, T, m]
         pre_act = self.W_enc(activations)
 
-        # TopK: keep only top-k activations per position
+        # 2: keep only top-k activations per position
         top_vals, top_idx = torch.topk(pre_act, self.k, dim=-1)  # [B, T, k]
 
         # Create sparse representation and re-embed
@@ -153,5 +186,6 @@ class SparseEncoder(nn.Module):
             top_vals: [batch, seq_len, k]
             top_idx: [batch, seq_len, k]
         """
+        activations = self._normalize_activations(activations)
         pre_act = self.W_enc(activations)
         return torch.topk(pre_act, self.k, dim=-1)
