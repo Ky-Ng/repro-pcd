@@ -50,6 +50,12 @@ class PCDConfig:
     finetune_checkpoint_dir: str = "checkpoints_finetune"
     pretrain_checkpoint: str = "checkpoints/step_5000"  # load from this pretrain ckpt
 
+    # SynthSys QA data
+    synthsys_cache_path: str = "data_cache/synthsys_qa.json"
+    synthsys_num_examples: int = 10_000
+    synthsys_max_response_tokens: int = 64
+    synthsys_user_middle_len: int = 32  # user prompts may be longer than 16 tokens
+
     # Inference
     max_new_tokens: int = 128
 

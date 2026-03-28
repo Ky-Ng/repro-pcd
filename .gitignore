@@ -211,3 +211,4 @@ __marimo__/
 *.lora
 /checkpoints*
 data_cache
+feature_annotations/
