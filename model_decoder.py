@@ -99,6 +99,67 @@ class PCDDecoder(nn.Module):
 
         return loss
 
+    def forward_train_qa(
+        self,
+        soft_tokens: torch.Tensor,
+        question_ids: torch.Tensor,
+        answer_ids: torch.Tensor,
+    ) -> torch.Tensor:
+        """Fine-tuning forward pass: predict answer given soft tokens + question.
+
+        The decoder sees [soft_tokens] + [question_embeds] + [answer_embeds]
+        and is trained to predict the answer tokens (loss only on answer positions).
+
+        This mirrors the paper's QA fine-tuning where the decoder learns to
+        answer questions about the subject model's encoded activations.
+
+        Args:
+            soft_tokens: [B, middle_len, d] encoded activations from frozen encoder
+            question_ids: [B, q_len] question token IDs
+            answer_ids: [B, a_len] answer token IDs (targets)
+
+        Returns:
+            loss: scalar cross-entropy loss on answer prediction
+        """
+        B, n_soft, d = soft_tokens.shape
+        q_len = question_ids.shape[1]
+        a_len = answer_ids.shape[1]
+
+        # Get embeddings for question and answer tokens
+        q_embeds = self.get_token_embeddings(question_ids)  # [B, q_len, d]
+        a_embeds = self.get_token_embeddings(answer_ids[:, :-1])  # [B, a_len-1, d]
+
+        # Concatenate: [soft_tokens] + [question_embeds] + [answer_embeds]
+        inputs_embeds = torch.cat([soft_tokens, q_embeds, a_embeds], dim=1)
+
+        total_len = inputs_embeds.shape[1]
+        attention_mask = torch.ones(B, total_len, device=inputs_embeds.device, dtype=torch.long)
+
+        # Mask out padding in question_ids from attention
+        # (pad tokens should not attend or be attended to)
+        q_pad_mask = (question_ids != self.tokenizer.pad_token_id).long()  # [B, q_len]
+        attention_mask[:, n_soft:n_soft + q_len] = q_pad_mask
+
+        outputs = self.model(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+        )
+        logits = outputs.logits  # [B, total_len, vocab_size]
+
+        # Loss only on answer positions
+        # The last position before answers (n_soft + q_len - 1) predicts first answer token
+        # Positions [n_soft + q_len - 1 ... n_soft + q_len + a_len - 2] predict answer tokens
+        answer_start = n_soft + q_len - 1
+        answer_logits = logits[:, answer_start:answer_start + a_len, :]  # [B, a_len, vocab]
+
+        loss = nn.functional.cross_entropy(
+            answer_logits.reshape(-1, answer_logits.size(-1)),
+            answer_ids.reshape(-1),
+            ignore_index=self.tokenizer.pad_token_id,
+        )
+
+        return loss
+
     @torch.no_grad()
     def generate_from_soft_tokens(
         self,

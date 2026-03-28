@@ -43,6 +43,13 @@ class PCDConfig:
     aux_loss_coeff: float = 1e-4
     dead_concept_window: int = 1000  # batches before concept considered dead
 
+    # Fine-tuning (Stage 2)
+    finetune_steps: int = 4000
+    finetune_warmup_steps: int = 400
+    finetune_mix_ratio: float = 0.5  # fraction of batches that are FineWeb (vs QA)
+    finetune_checkpoint_dir: str = "checkpoints_finetune"
+    pretrain_checkpoint: str = "checkpoints/step_5000"  # load from this pretrain ckpt
+
     # Inference
     max_new_tokens: int = 128
 

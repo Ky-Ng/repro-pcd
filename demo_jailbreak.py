@@ -1,9 +1,11 @@
 """Demo: Use PCD to reveal what the subject model thinks about a jailbreak prompt.
 
-Since the model is only pretrained (not finetuned on QA), the decoder generates
-text continuations that reflect what concepts the encoder captured from the
-subject model's activations. We also use short probe phrases to elicit
-topic-level information.
+Supports two modes:
+  --mode pretrain  (default for checkpoints/step_*)
+      Decoder generates text continuations + probe outputs.
+  --mode finetune  (default for checkpoints_finetune/step_*)
+      Decoder answers structured QA questions about the encoded activations,
+      AND still shows continuation/probe outputs for comparison.
 """
 
 import argparse
@@ -26,8 +28,12 @@ PROMPTS = [
 def main():
     parser = argparse.ArgumentParser(description="PCD Jailbreak Demo")
     parser.add_argument(
-        "--checkpoint", type=str, default="checkpoints/step_5000",
-        help="Path to checkpoint directory",
+        "--checkpoint", type=str, default=None,
+        help="Path to checkpoint directory (auto-detects mode from path)",
+    )
+    parser.add_argument(
+        "--mode", type=str, choices=["pretrain", "finetune"], default=None,
+        help="Force mode (default: auto-detect from checkpoint path)",
     )
     parser.add_argument(
         "--prompt", type=str, default=None,
@@ -37,16 +43,32 @@ def main():
 
     config = PCDConfig()
 
-    encoder_path = f"{args.checkpoint}/encoder.pt"
+    # Auto-detect checkpoint and mode
+    if args.checkpoint is None:
+        # Prefer finetune checkpoint if it exists
+        import os
+        ft_ckpt = f"{config.finetune_checkpoint_dir}/step_{config.finetune_steps}"
+        pt_ckpt = config.pretrain_checkpoint
+        if os.path.isdir(ft_ckpt):
+            args.checkpoint = ft_ckpt
+        else:
+            args.checkpoint = pt_ckpt
+
+    if args.mode is None:
+        args.mode = "finetune" if "finetune" in args.checkpoint else "pretrain"
+
+    # Encoder always comes from the pretrain checkpoint (frozen during fine-tuning)
+    if args.mode == "finetune":
+        encoder_path = f"{config.pretrain_checkpoint}/encoder.pt"
+    else:
+        encoder_path = f"{args.checkpoint}/encoder.pt"
     decoder_path = f"{args.checkpoint}/decoder_lora"
 
     print("=" * 60)
     print("PCD Jailbreak Demo")
     print("=" * 60)
-    print()
-    print("The PCD decoder was pretrained to predict text continuations")
-    print("from encoded subject model activations. The continuations")
-    print("reveal what concepts the encoder captured.")
+    print(f"Checkpoint: {args.checkpoint}")
+    print(f"Mode: {args.mode}")
     print()
 
     pipeline = PCDPipeline(config, encoder_path, decoder_path)
@@ -58,6 +80,7 @@ def main():
         print(f"Prompt {i + 1}: {prompt[:80]}...")
         print("=" * 60)
 
+        # Always run the base pipeline (continuation + probes)
         result = pipeline(prompt)
 
         print(f"\n--- Subject Model Response (what the model says) ---")
@@ -69,6 +92,16 @@ def main():
         print(f"\n--- Probe Outputs (guided topic extraction) ---")
         for probe, output in result["probe_outputs"].items():
             print(f'  "{probe}" → {output[:150]}')
+
+        # QA mode: ask structured questions (only meaningful after fine-tuning)
+        if args.mode == "finetune":
+            print(f"\n--- QA Outputs (fine-tuned decoder) ---")
+            qa_results = pipeline.ask_multiple(prompt)
+            for qa in qa_results:
+                q_short = qa["question"].split("\n")[0]  # first line of question
+                print(f'  Q: {q_short}')
+                print(f'  A: {qa["answer"].strip()[:100]}')
+                print()
 
         print(f"\n--- Encoder Stats ---")
         print(f"Active concepts: {result['n_active_concepts']}")

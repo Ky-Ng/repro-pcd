@@ -145,3 +145,83 @@ class PCDPipeline:
             "top_concept_values": top_vals[0].cpu().tolist(),
             "n_active_concepts": enc_info["n_active_concepts"],
         }
+
+    @torch.no_grad()
+    def ask(
+        self,
+        input_text: str,
+        question: str,
+        max_new_tokens: int = 32,
+    ) -> dict:
+        """Ask a question about the subject model's activations (post-finetuning).
+
+        After QA fine-tuning, the decoder can answer structured questions about
+        what the encoder captured from the subject model's internal state.
+
+        Args:
+            input_text: Text the subject model processes
+            question: Natural language question about the text/model behavior
+            max_new_tokens: Max tokens to generate for the answer
+
+        Returns:
+            dict with 'answer', 'question', 'top_concepts'
+        """
+        encoded, enc_info, top_vals, top_idx = self._encode_input(input_text)
+
+        # Feed [soft_tokens] + [question] and generate the answer
+        q_ids = self.tokenizer.encode(question, add_special_tokens=False)
+        q_tensor = torch.tensor([q_ids], device=self.config.device)
+
+        answer = self.decoder.generate_from_soft_tokens(
+            encoded, q_tensor, max_new_tokens=max_new_tokens,
+        )
+
+        return {
+            "question": question,
+            "answer": answer[0],
+            "top_concept_indices": top_idx[0].cpu().tolist(),
+            "top_concept_values": top_vals[0].cpu().tolist(),
+            "n_active_concepts": enc_info["n_active_concepts"],
+        }
+
+    @torch.no_grad()
+    def ask_multiple(
+        self,
+        input_text: str,
+        questions: list[str] | None = None,
+        max_new_tokens: int = 32,
+    ) -> list[dict]:
+        """Ask multiple questions about the same input (efficient, single encode).
+
+        Args:
+            input_text: Text the subject model processes
+            questions: List of questions. If None, uses default probing questions.
+            max_new_tokens: Max tokens per answer
+
+        Returns:
+            List of dicts with 'question' and 'answer'
+        """
+        if questions is None:
+            questions = [
+                "What is the primary topic of the text?\nA. Science\nB. Technology\nC. Politics\nD. Other\nAnswer:",
+                "What is the tone or sentiment of the text?\nA. Positive\nB. Negative\nC. Neutral\nD. Mixed\nAnswer:",
+                "What domain does the text belong to?\nA. News\nB. Academic\nC. Blog\nD. Technical documentation\nAnswer:",
+                "Is the text formal or informal?\nA. Formal\nB. Informal\nC. Semi-formal\nD. Cannot determine\nAnswer:",
+            ]
+
+        encoded, enc_info, top_vals, top_idx = self._encode_input(input_text)
+
+        results = []
+        for question in questions:
+            q_ids = self.tokenizer.encode(question, add_special_tokens=False)
+            q_tensor = torch.tensor([q_ids], device=self.config.device)
+
+            answer = self.decoder.generate_from_soft_tokens(
+                encoded, q_tensor, max_new_tokens=max_new_tokens,
+            )
+            results.append({
+                "question": question,
+                "answer": answer[0],
+            })
+
+        return results

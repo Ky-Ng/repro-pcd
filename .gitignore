@@ -209,4 +209,5 @@ __marimo__/
 .claude
 *.pt
 *.lora
-/checkpoints
+/checkpoints*
+data_cache
