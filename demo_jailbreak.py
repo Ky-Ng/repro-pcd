@@ -105,10 +105,16 @@ def main():
 
         print(f"\n--- Encoder Stats ---")
         print(f"Active concepts: {result['n_active_concepts']}")
-        top_idx = result["top_concept_indices"][0][:8]
-        top_vals = result["top_concept_values"][0][:8]
-        print(f"Top concept indices (pos 0): {top_idx}")
-        print(f"Top concept values  (pos 0): {[f'{v:.3f}' for v in top_vals]}")
+
+        # Print labeled top concepts
+        labeled = pipeline.get_labeled_concepts(
+            result["top_concept_indices"],
+            result["top_concept_values"],
+            position=0,
+        )
+        print(f"Top concepts (pos 0):")
+        for c in labeled[:8]:
+            print(f"  Concept {c['concept_id']:>5}: {c['activation']:.3f}  {c['label']}")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
 """End-to-end PCD inference pipeline."""
 
+import json
+import os
+
 import torch
 from transformers import AutoTokenizer
 from peft import PeftModel
@@ -18,6 +21,7 @@ class PCDPipeline:
         config: PCDConfig,
         encoder_path: str,
         decoder_lora_path: str,
+        feature_labels_path: str | None = "feature_annotations/concept_labels.json",
     ):
         self.config = config
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -48,6 +52,41 @@ class PCDPipeline:
             torch_dtype=config.dtype,
         ).to(config.device)
         self.decoder.model.eval()
+
+        # Load feature labels if available
+        self.feature_labels = {}
+        if feature_labels_path and os.path.exists(feature_labels_path):
+            with open(feature_labels_path) as f:
+                raw = json.load(f)
+            for k, v in raw.items():
+                self.feature_labels[int(k)] = v.get("label", "unlabelled")
+            print(f"Loaded {len(self.feature_labels)} feature labels")
+
+    def get_labeled_concepts(
+        self, top_idx: list[list[int]], top_vals: list[list[float]], position: int = 0
+    ) -> list[dict]:
+        """Return labeled concept info for a given token position.
+
+        Args:
+            top_idx: nested list [seq_len][k] of concept indices
+            top_vals: nested list [seq_len][k] of concept values
+            position: which token position to inspect (default: 0)
+
+        Returns:
+            List of dicts with 'concept_id', 'label', 'activation'
+        """
+        indices = top_idx[position] if position < len(top_idx) else []
+        values = top_vals[position] if position < len(top_vals) else []
+
+        results = []
+        for idx, val in zip(indices, values):
+            label = self.feature_labels.get(idx, "unlabelled")
+            results.append({
+                "concept_id": idx,
+                "label": label,
+                "activation": val,
+            })
+        return results
 
     def _encode_input(self, input_text: str):
         """Tokenize, run subject model, and encode activations.

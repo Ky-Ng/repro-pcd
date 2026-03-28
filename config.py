@@ -52,7 +52,7 @@ class PCDConfig:
 
     # SynthSys QA data
     synthsys_cache_path: str = "data_cache/synthsys_qa.json"
-    synthsys_num_examples: int = 10_000
+    synthsys_num_examples: int = 360  # 18 attrs × 4 values × 5 questions
     synthsys_max_response_tokens: int = 64
     synthsys_user_middle_len: int = 32  # user prompts may be longer than 16 tokens
 

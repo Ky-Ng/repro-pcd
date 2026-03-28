@@ -87,9 +87,9 @@ def train(config: PCDConfig | None = None):
     print(f"Encoder: frozen ({sum(p.numel() for p in encoder.parameters()):,} params)")
 
     # ---- Data ----
-    # QA data
-    print("Preparing QA fine-tuning data...")
-    qa_dataset = prepare_qa_data(config, subject, num_examples=10_000)
+    # SynthSys QA data
+    print("Preparing SynthSys QA fine-tuning data...")
+    qa_dataset = prepare_qa_data(config, subject)
     qa_dataloader = get_qa_dataloader(qa_dataset, config)
 
     # FineWeb data (for mixing to prevent forgetting)
@@ -156,23 +156,30 @@ def train(config: PCDConfig | None = None):
             fineweb_steps += 1
 
         else:
-            # --- QA fine-tuning objective ---
+            # --- QA fine-tuning objective (SynthSys) ---
             try:
                 batch = next(qa_iter)
             except StopIteration:
                 qa_iter = iter(qa_dataloader)
                 batch = next(qa_iter)
 
-            prefix_ids = batch["prefix_ids"].to(config.device)
-            middle_ids = batch["middle_ids"].to(config.device)
+            system_ids = batch["system_ids"].to(config.device)  # [B, max_sys_len]
+            user_ids = batch["user_ids"].to(config.device)      # [B, user_middle_len]
+            system_len = batch["system_len"]                     # [B] actual lengths
+            user_len = batch["user_len"]                         # [B] actual lengths
             question_ids = batch["question_ids"].to(config.device)
             answer_ids = batch["answer_ids"].to(config.device)
 
-            # Subject activations (no grad, frozen)
-            subject_input = torch.cat([prefix_ids, middle_ids], dim=1)
+            # Subject sees [system + user], we extract only user activations
+            subject_input = torch.cat([system_ids, user_ids], dim=1)
+
+            # Use the first example's lengths (all system prompts are similar length)
+            sys_len = system_ids.shape[1]
+            usr_len = user_ids.shape[1]
+
             with torch.no_grad():
                 activations = subject.get_middle_activations(
-                    subject_input, config.prefix_len, config.middle_len
+                    subject_input, sys_len, usr_len
                 )
                 encoded, _ = encoder(activations)
 
