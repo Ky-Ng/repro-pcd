@@ -1,16 +1,107 @@
 Loading subject model...
 `torch_dtype` is deprecated! Use `dtype` instead!
-Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 5598.50it/s]
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 5566.10it/s]
 Loading encoder from pretrain checkpoint...
 Loading decoder with pretrained LoRA...
-Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 5478.75it/s]
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 5235.16it/s]
 /venv/main/lib/python3.12/site-packages/peft/tuners/tuners_utils.py:285: UserWarning: Already found a `peft_config` attribute in the model. This will lead to having multiple adapters in the model. Make sure to know what you are doing!
   warnings.warn(
 Decoder trainable (LoRA) params: 18,464,768
 Encoder: frozen (25,174,016 params)
 Preparing SynthSys QA fine-tuning data...
-Generating SynthSys-style QA pairs (target: 360)...
-Using Claude Haiku as consistency judge...
-Generating SynthSys QA pairs:   0%|          | 0/360 [00:00<?, ?it/s]The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
-The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
-Generating SynthSys QA pairs:   0%|          | 1/360 [00:15<1:31:46, 15.34s/it]Generating SynthSys QA pairs:   1%|          | 2/360 [00:19<53:03,  8.89s/it]  Generating SynthSys QA pairs:   1%|          | 3/360 [03:32<9:13:18, 92.99s/it]Generating SynthSys QA pairs:   1%|          | 4/360 [03:47<6:09:04, 62.20s/it]Generating SynthSys QA pairs:   1%|▏         | 5/360 [03:50<4:01:15, 40.78s/it]Generating SynthSys QA pairs:   2%|▏         | 6/360 [04:02<3:02:13, 30.89s/it]Generating SynthSys QA pairs:   2%|▏         | 7/360 [04:05<2:08:08, 21.78s/it]Generating SynthSys QA pairs:   2%|▏         | 8/360 [04:13<1:43:07, 17.58s/it]Generating SynthSys QA pairs:   2%|▎         | 9/360 [04:24<1:29:30, 15.30s/it]Generating SynthSys QA pairs:   3%|▎         | 10/360 [04:35<1:21:22, 13.95s/it]Generating SynthSys QA pairs:   3%|▎         | 11/360 [04:46<1:16:10, 13.10s/it]Generating SynthSys QA pairs:   3%|▎         | 12/360 [04:51<1:02:38, 10.80s/it]Generating SynthSys QA pairs:   4%|▎         | 13/360 [04:54<47:57,  8.29s/it]  Generating SynthSys QA pairs:   4%|▍         | 14/360 [04:57<38:05,  6.61s/it]Generating SynthSys QA pairs:   4%|▍         | 15/360 [05:08<46:17,  8.05s/it]Generating SynthSys QA pairs:   4%|▍         | 16/360 [07:01<3:48:10, 39.80s/it]Generating SynthSys QA pairs:   5%|▍         | 17/360 [07:06<2:47:28, 29.29s/it]Generating SynthSys QA pairs:   5%|▌         | 18/360 [07:52<3:14:44, 34.17s/it]Generating SynthSys QA pairs:   5%|▌         | 19/360 [07:55<2:20:59, 24.81s/it]Generating SynthSys QA pairs:   6%|▌         | 20/360 [08:01<1:48:16, 19.11s/it]Generating SynthSys QA pairs:   6%|▌         | 21/360 [08:07<1:25:30, 15.14s/it]Generating SynthSys QA pairs:   6%|▌         | 22/360 [08:21<1:23:49, 14.88s/it]Generating SynthSys QA pairs:   6%|▋         | 23/360 [08:34<1:20:22, 14.31s/it]Generating SynthSys QA pairs:   7%|▋         | 24/360 [08:42<1:10:18, 12.55s/it]Generating SynthSys QA pairs:   7%|▋         | 25/360 [08:46<56:03, 10.04s/it]  Generating SynthSys QA pairs:   7%|▋         | 26/360 [09:01<1:02:36, 11.25s/it]Generating SynthSys QA pairs:   8%|▊         | 27/360 [09:03<48:23,  8.72s/it]  Generating SynthSys QA pairs:   8%|▊         | 28/360 [09:11<45:42,  8.26s/it]Generating SynthSys QA pairs:   8%|▊         | 29/360 [09:33<1:08:47, 12.47s/it]Generating SynthSys QA pairs:   8%|▊         | 30/360 [09:38<55:47, 10.14s/it]  Generating SynthSys QA pairs:   9%|▊         | 31/360 [11:36<3:54:04, 42.69s/it]Generating SynthSys QA pairs:   9%|▉         | 32/360 [11:45<2:57:25, 32.45s/it]Generating SynthSys QA pairs:   9%|▉         | 33/360 [11:47<2:08:20, 23.55s/it]Generating SynthSys QA pairs:   9%|▉         | 34/360 [11:52<1:37:39, 17.97s/it]Generating SynthSys QA pairs:  10%|▉         | 35/360 [13:04<3:05:01, 34.16s/it]Generating SynthSys QA pairs:  10%|█         | 36/360 [13:21<2:36:00, 28.89s/it]Generating SynthSys QA pairs:  10%|█         | 37/360 [13:50<2:36:19, 29.04s/it]Generating SynthSys QA pairs:  11%|█         | 38/360 [14:41<3:10:49, 35.56s/it]Generating SynthSys QA pairs:  11%|█         | 39/360 [14:52<2:31:21, 28.29s/it]Generating SynthSys QA pairs:  11%|█         | 40/360 [16:24<4:11:47, 47.21s/it]Generating SynthSys QA pairs:  11%|█▏        | 41/360 [16:32<3:08:36, 35.48s/it]Generating SynthSys QA pairs:  12%|█▏        | 42/360 [16:37<2:19:07, 26.25s/it]Generating SynthSys QA pairs:  12%|█▏        | 43/360 [16:45<1:50:27, 20.91s/it]Generating SynthSys QA pairs:  12%|█▏        | 44/360 [16:50<1:25:17, 16.19s/it]Generating SynthSys QA pairs:  12%|█▎        | 45/360 [17:12<1:33:06, 17.74s/it]Generating SynthSys QA pairs:  13%|█▎        | 46/360 [17:19<1:16:52, 14.69s/it]Generating SynthSys QA pairs:  13%|█▎        | 47/360 [17:29<1:08:28, 13.13s/it]Generating SynthSys QA pairs:  13%|█▎        | 48/360 [17:45<1:13:19, 14.10s/it]Generating SynthSys QA pairs:  14%|█▎        | 49/360 [17:48<55:17, 10.67s/it]  Generating SynthSys QA pairs:  14%|█▍        | 50/360 [17:57<53:16, 10.31s/it]Generating SynthSys QA pairs:  14%|█▍        | 51/360 [18:03<46:02,  8.94s/it]
+Loading cached SynthSys QA data from data_cache/synthsys_qa.json
+Loaded 128 QA pairs
+Preparing FineWeb data for mixing...
+Loading cached data from data_cache/fineweb_windows.pt
+Loaded 100000 windows (4.8M tokens)
+
+Starting fine-tuning for 4000 steps...
+Batch size: 16, Grad accum: 4
+FineWeb mix ratio: 0.5
+[finetune] step 50 | qa_loss=6.1539 | fineweb_loss=3.2552 | qa_batches=31 | fineweb_batches=19 | lr=0.0000
+[finetune] step 100 | qa_loss=4.4272 | fineweb_loss=3.3409 | qa_batches=28 | fineweb_batches=22 | lr=0.0000
+[finetune] step 150 | qa_loss=2.2918 | fineweb_loss=3.3114 | qa_batches=25 | fineweb_batches=25 | lr=0.0000
+[finetune] step 200 | qa_loss=1.4981 | fineweb_loss=3.3359 | qa_batches=25 | fineweb_batches=25 | lr=0.0000
+[finetune] step 250 | qa_loss=1.1152 | fineweb_loss=3.3093 | qa_batches=29 | fineweb_batches=21 | lr=0.0000
+[finetune] step 300 | qa_loss=0.7811 | fineweb_loss=3.2396 | qa_batches=25 | fineweb_batches=25 | lr=0.0000
+[finetune] step 350 | qa_loss=0.4455 | fineweb_loss=3.2851 | qa_batches=28 | fineweb_batches=22 | lr=0.0000
+[finetune] step 400 | qa_loss=0.2981 | fineweb_loss=3.2638 | qa_batches=24 | fineweb_batches=26 | lr=0.0000
+[finetune] step 450 | qa_loss=0.1345 | fineweb_loss=3.2961 | qa_batches=22 | fineweb_batches=28 | lr=0.0000
+[finetune] step 500 | qa_loss=0.1721 | fineweb_loss=3.3689 | qa_batches=33 | fineweb_batches=17 | lr=0.0000
+[finetune] step 550 | qa_loss=0.1652 | fineweb_loss=3.3430 | qa_batches=21 | fineweb_batches=29 | lr=0.0000
+[finetune] step 600 | qa_loss=0.1626 | fineweb_loss=3.2496 | qa_batches=23 | fineweb_batches=27 | lr=0.0000
+[finetune] step 650 | qa_loss=0.2154 | fineweb_loss=3.3499 | qa_batches=18 | fineweb_batches=32 | lr=0.0000
+[finetune] step 700 | qa_loss=0.2031 | fineweb_loss=3.1600 | qa_batches=22 | fineweb_batches=28 | lr=0.0000
+[finetune] step 750 | qa_loss=0.2567 | fineweb_loss=3.2582 | qa_batches=28 | fineweb_batches=22 | lr=0.0000
+[finetune] step 800 | qa_loss=0.1544 | fineweb_loss=3.3679 | qa_batches=29 | fineweb_batches=21 | lr=0.0001
+[finetune] step 850 | qa_loss=0.1496 | fineweb_loss=3.3122 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 900 | qa_loss=0.2493 | fineweb_loss=3.2868 | qa_batches=29 | fineweb_batches=21 | lr=0.0001
+[finetune] step 950 | qa_loss=0.1868 | fineweb_loss=3.2482 | qa_batches=23 | fineweb_batches=27 | lr=0.0001
+[finetune] step 1000 | qa_loss=0.2575 | fineweb_loss=3.2721 | qa_batches=21 | fineweb_batches=29 | lr=0.0001
+Fine-tune checkpoint saved at step 1000 to checkpoints_finetune/step_1000
+[finetune] step 1050 | qa_loss=0.2555 | fineweb_loss=3.3074 | qa_batches=27 | fineweb_batches=23 | lr=0.0001
+[finetune] step 1100 | qa_loss=0.0699 | fineweb_loss=3.2319 | qa_batches=28 | fineweb_batches=22 | lr=0.0001
+[finetune] step 1150 | qa_loss=0.2043 | fineweb_loss=3.2804 | qa_batches=22 | fineweb_batches=28 | lr=0.0001
+[finetune] step 1200 | qa_loss=0.3073 | fineweb_loss=3.3241 | qa_batches=29 | fineweb_batches=21 | lr=0.0001
+[finetune] step 1250 | qa_loss=0.0925 | fineweb_loss=3.2676 | qa_batches=31 | fineweb_batches=19 | lr=0.0001
+[finetune] step 1300 | qa_loss=0.1623 | fineweb_loss=3.3329 | qa_batches=25 | fineweb_batches=25 | lr=0.0001
+[finetune] step 1350 | qa_loss=0.2138 | fineweb_loss=3.2960 | qa_batches=27 | fineweb_batches=23 | lr=0.0001
+[finetune] step 1400 | qa_loss=0.1514 | fineweb_loss=3.3241 | qa_batches=25 | fineweb_batches=25 | lr=0.0001
+[finetune] step 1450 | qa_loss=0.3194 | fineweb_loss=3.3696 | qa_batches=22 | fineweb_batches=28 | lr=0.0001
+[finetune] step 1500 | qa_loss=0.0918 | fineweb_loss=3.2600 | qa_batches=26 | fineweb_batches=24 | lr=0.0001
+[finetune] step 1550 | qa_loss=0.1610 | fineweb_loss=3.2676 | qa_batches=23 | fineweb_batches=27 | lr=0.0001
+[finetune] step 1600 | qa_loss=0.1297 | fineweb_loss=3.2989 | qa_batches=27 | fineweb_batches=23 | lr=0.0001
+[finetune] step 1650 | qa_loss=0.0973 | fineweb_loss=3.2958 | qa_batches=32 | fineweb_batches=18 | lr=0.0001
+[finetune] step 1700 | qa_loss=0.2568 | fineweb_loss=3.2279 | qa_batches=33 | fineweb_batches=17 | lr=0.0001
+[finetune] step 1750 | qa_loss=0.1798 | fineweb_loss=3.2480 | qa_batches=30 | fineweb_batches=20 | lr=0.0001
+[finetune] step 1800 | qa_loss=0.1275 | fineweb_loss=3.2926 | qa_batches=30 | fineweb_batches=20 | lr=0.0001
+[finetune] step 1850 | qa_loss=0.0863 | fineweb_loss=3.2812 | qa_batches=23 | fineweb_batches=27 | lr=0.0001
+[finetune] step 1900 | qa_loss=0.1326 | fineweb_loss=3.2686 | qa_batches=30 | fineweb_batches=20 | lr=0.0001
+[finetune] step 1950 | qa_loss=0.1657 | fineweb_loss=3.2856 | qa_batches=25 | fineweb_batches=25 | lr=0.0001
+[finetune] step 2000 | qa_loss=0.0918 | fineweb_loss=3.2555 | qa_batches=30 | fineweb_batches=20 | lr=0.0001
+Fine-tune checkpoint saved at step 2000 to checkpoints_finetune/step_2000
+[finetune] step 2050 | qa_loss=0.0240 | fineweb_loss=3.4134 | qa_batches=28 | fineweb_batches=22 | lr=0.0001
+[finetune] step 2100 | qa_loss=0.0991 | fineweb_loss=3.2800 | qa_batches=28 | fineweb_batches=22 | lr=0.0001
+[finetune] step 2150 | qa_loss=0.1021 | fineweb_loss=3.3317 | qa_batches=20 | fineweb_batches=30 | lr=0.0001
+[finetune] step 2200 | qa_loss=0.2018 | fineweb_loss=3.2780 | qa_batches=20 | fineweb_batches=30 | lr=0.0001
+[finetune] step 2250 | qa_loss=0.1951 | fineweb_loss=3.3131 | qa_batches=30 | fineweb_batches=20 | lr=0.0001
+[finetune] step 2300 | qa_loss=0.0762 | fineweb_loss=3.3210 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 2350 | qa_loss=0.0787 | fineweb_loss=3.2227 | qa_batches=22 | fineweb_batches=28 | lr=0.0001
+[finetune] step 2400 | qa_loss=0.0498 | fineweb_loss=3.3572 | qa_batches=26 | fineweb_batches=24 | lr=0.0001
+[finetune] step 2450 | qa_loss=0.0561 | fineweb_loss=3.3659 | qa_batches=28 | fineweb_batches=22 | lr=0.0001
+[finetune] step 2500 | qa_loss=0.0944 | fineweb_loss=3.3110 | qa_batches=21 | fineweb_batches=29 | lr=0.0001
+[finetune] step 2550 | qa_loss=0.0139 | fineweb_loss=3.3346 | qa_batches=26 | fineweb_batches=24 | lr=0.0001
+[finetune] step 2600 | qa_loss=0.0271 | fineweb_loss=3.2961 | qa_batches=23 | fineweb_batches=27 | lr=0.0001
+[finetune] step 2650 | qa_loss=0.0202 | fineweb_loss=3.3152 | qa_batches=27 | fineweb_batches=23 | lr=0.0001
+[finetune] step 2700 | qa_loss=0.0179 | fineweb_loss=3.2957 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 2750 | qa_loss=0.0059 | fineweb_loss=3.2705 | qa_batches=25 | fineweb_batches=25 | lr=0.0001
+[finetune] step 2800 | qa_loss=0.0180 | fineweb_loss=3.2399 | qa_batches=19 | fineweb_batches=31 | lr=0.0001
+[finetune] step 2850 | qa_loss=0.0282 | fineweb_loss=3.3145 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 2900 | qa_loss=0.1592 | fineweb_loss=3.2902 | qa_batches=26 | fineweb_batches=24 | lr=0.0001
+[finetune] step 2950 | qa_loss=0.0950 | fineweb_loss=3.2949 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 3000 | qa_loss=0.0682 | fineweb_loss=3.3877 | qa_batches=25 | fineweb_batches=25 | lr=0.0001
+Fine-tune checkpoint saved at step 3000 to checkpoints_finetune/step_3000
+[finetune] step 3050 | qa_loss=0.0135 | fineweb_loss=3.3186 | qa_batches=23 | fineweb_batches=27 | lr=0.0001
+[finetune] step 3100 | qa_loss=0.0050 | fineweb_loss=3.3201 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 3150 | qa_loss=0.0072 | fineweb_loss=3.2556 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 3200 | qa_loss=0.0236 | fineweb_loss=3.2599 | qa_batches=26 | fineweb_batches=24 | lr=0.0001
+[finetune] step 3250 | qa_loss=0.0393 | fineweb_loss=3.2541 | qa_batches=30 | fineweb_batches=20 | lr=0.0001
+[finetune] step 3300 | qa_loss=0.1800 | fineweb_loss=3.3761 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 3350 | qa_loss=0.0351 | fineweb_loss=3.3685 | qa_batches=21 | fineweb_batches=29 | lr=0.0001
+[finetune] step 3400 | qa_loss=0.0078 | fineweb_loss=3.3027 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 3450 | qa_loss=0.0083 | fineweb_loss=3.3032 | qa_batches=22 | fineweb_batches=28 | lr=0.0001
+[finetune] step 3500 | qa_loss=0.0010 | fineweb_loss=3.3141 | qa_batches=20 | fineweb_batches=30 | lr=0.0001
+[finetune] step 3550 | qa_loss=0.0002 | fineweb_loss=3.2435 | qa_batches=26 | fineweb_batches=24 | lr=0.0001
+[finetune] step 3600 | qa_loss=0.0001 | fineweb_loss=3.2747 | qa_batches=22 | fineweb_batches=28 | lr=0.0001
+[finetune] step 3650 | qa_loss=0.0001 | fineweb_loss=3.2828 | qa_batches=20 | fineweb_batches=30 | lr=0.0001
+[finetune] step 3700 | qa_loss=0.0000 | fineweb_loss=3.3755 | qa_batches=24 | fineweb_batches=26 | lr=0.0001
+[finetune] step 3750 | qa_loss=0.0000 | fineweb_loss=3.3034 | qa_batches=25 | fineweb_batches=25 | lr=0.0001
+[finetune] step 3800 | qa_loss=0.0000 | fineweb_loss=3.3291 | qa_batches=26 | fineweb_batches=24 | lr=0.0001
+[finetune] step 3850 | qa_loss=0.0000 | fineweb_loss=3.2748 | qa_batches=23 | fineweb_batches=27 | lr=0.0001
+[finetune] step 3900 | qa_loss=0.0000 | fineweb_loss=3.3613 | qa_batches=23 | fineweb_batches=27 | lr=0.0001
+[finetune] step 3950 | qa_loss=0.0736 | fineweb_loss=3.3306 | qa_batches=25 | fineweb_batches=25 | lr=0.0001
+[finetune] step 4000 | qa_loss=0.0011 | fineweb_loss=3.2882 | qa_batches=25 | fineweb_batches=25 | lr=0.0001
+Fine-tune checkpoint saved at step 4000 to checkpoints_finetune/step_4000
+Fine-tune checkpoint saved at step 4000 to checkpoints_finetune/step_4000
+
+Fine-tuning complete! 4000 steps.
