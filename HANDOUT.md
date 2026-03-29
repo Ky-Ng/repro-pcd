@@ -232,7 +232,7 @@ class PCDConfig:
 
     # ---------- SynthSys QA data ----------
     synthsys_cache_path: str = "data_cache/synthsys_qa.json"
-    synthsys_num_examples: int = 10_000
+    synthsys_num_examples: int = 360  # 18 attrs × 4 values × 5 questions
     synthsys_max_response_tokens: int = 64
     synthsys_user_middle_len: int = 32
 
@@ -1728,7 +1728,7 @@ python train_pretrain.py
 # - ANTHROPIC_API_KEY set (for QA data generation, first time only)
 #
 # This will:
-# 1. Generate ~10k QA pairs (~1-2 hours, then cached)
+# 1. Generate 360 QA pairs (~10-15 min, then cached)
 # 2. Fine-tune decoder LoRA for 4000 steps (~1-2 hours)
 python train_finetune.py
 ```
@@ -1836,7 +1836,7 @@ These are real bugs we encountered during reproduction. If you skip these fixes,
 | Training data | ~72M tokens | ~4.8M tokens |
 | Pretraining steps | Not specified | 5,000 |
 | LoRA rank | Not specified | 16 |
-| Fine-tuning data | 78,964 verified pairs (SynthSys 8B) | ~10,000 self-generated pairs |
+| Fine-tuning data | 78,964 verified pairs (SynthSys 8B) | 360 self-generated pairs (18 attrs x 4 values x 5 questions) |
 | Fine-tuning steps | Not specified | 4,000 |
 | GPU requirement | Multi-GPU (8B model) | Single 16GB GPU |
 | Feature labeling | Yes (automated) | Not included in this tutorial |
