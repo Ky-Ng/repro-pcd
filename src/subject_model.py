@@ -19,6 +19,7 @@ class SubjectModel:
             dtype=self.dtype,
         )
         self.tokenizer = self.model.tokenizer
+        self.padding_side = config.padding_side
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -62,13 +63,17 @@ class SubjectModel:
             s,
             return_tensors="pt",
             padding=True,
+            padding_side=self.padding_side
         ).to(self.device)
 
         return inputs
 
-    # `decode` and `generate` are for visibility/sanity checking, works only for prompts of same length because no attention_mask
+    # `decode` and `generate` are for visibility/sanity checking
     def decode(self, tokens: torch.Tensor) -> str:
         return self.model.to_string(tokens)
 
-    def generate(self, tokens: torch.Tensor, max_new_tokens: int = 128) -> str:
-        return self.model.generate(tokens, max_new_tokens=max_new_tokens, temperature=0)    
+    def generate(self, s, max_new_tokens: int = 128) -> str:
+        """
+        s: str or list[str] — pass strings directly so TransformerLens handles padding internally (left-padding)
+        """
+        return self.model.generate(s, max_new_tokens=max_new_tokens, temperature=0, stop_at_eos=True, padding_side="left")    

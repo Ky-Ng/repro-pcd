@@ -5,6 +5,7 @@ import torch
 class PCDConfig:
     # Model
     model_name: str = "Qwen/Qwen2.5-1.5B-Instruct" # https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct
+    padding_side: str = "left" # Use left padding, training unaffected since seq len same per batch, only for bulk inference
     l_read: int = 14  # Read activations 1/2 way through the model (28 layers)
 
     # Follow paper's prompt splitting
