@@ -6,14 +6,28 @@ print("Testing PCD Subject Model")
 config = PCDConfig()
 my_subject_model = SubjectModel(config)
 
-prompt = "Please explain Transluce's Predictive Concept Decoders" # Refuses because doesn't know
-# prompt = "Please explain why the sky is blue" # No refusal because knows answer
-prompt_with_template = my_subject_model.apply_chat_template(prompt)
 
-tokens = my_subject_model.tokenize(prompt_with_template)
-print("tokens", tokens)
-print("decoded tokens", my_subject_model.decode(tokens))
+prompts = [
+    "Please explain Transluce's Predictive Concept Decoders", # Refuses because model doesn't know about PCDs
+    "Please explain why the sky is blue" # No refusal because knows answer
+]
+
+prompts_with_template = [my_subject_model.apply_chat_template(prompt) for prompt in prompts]
+
+inputs = my_subject_model.tokenize(prompts_with_template)
+tokens = inputs.input_ids # [batch, seq]
+attention_mask = inputs.attention_mask # [batch, seq]
+
+for seq in tokens:
+    print("tokens", seq)
+    print("decoded tokens", my_subject_model.decode(tokens))
 
 output = my_subject_model.generate(tokens)
 print("output", output)
-print("decoded output tokens", my_subject_model.decode(output))
+
+for out_seq in output:
+    print("decoded output tokens", my_subject_model.decode(out_seq))
+
+# Extract middle activations
+middle_activations = my_subject_model.get_middle_activations(tokens, attention_mask)
+print("middle activations shape", middle_activations.shape) # [batch, n_middle, d_model]

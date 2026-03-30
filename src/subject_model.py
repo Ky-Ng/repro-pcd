@@ -1,3 +1,5 @@
+from transformers import BatchEncoding
+
 from src.pcd_config import PCDConfig
 from transformer_lens import HookedTransformer
 import torch
@@ -18,8 +20,31 @@ class SubjectModel:
         )
         self.tokenizer = self.model.tokenizer
 
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        self.n_prefix = config.n_prefix
+        self.n_middle = config.n_middle
+        self.n_suffix = config.n_suffix
+
         for p in self.model.parameters():
             p.requires_grad = False
+    
+    def get_middle_activations(self, tokens: torch.Tensor, attention_mask: torch.Tensor = None) -> torch.Tensor:
+        """
+        Extract residual stream activations at l_read for the middle tokens
+
+        tokens: [Batch, Seq]
+        prefix_len: number of prefix tokens to skip
+        middle_len: number of middle tokens to extract
+        attention_mask: [Batch, Seq] — needed for padded batches
+
+        Returns: [Batch, middle_len, d_model]
+        """
+        hook_name = f"blocks.{self.config.l_read}.hook_resid_pre"
+        _, cache = self.model.run_with_cache(tokens, names_filter=hook_name, attention_mask=attention_mask)
+        resid = cache[hook_name]  # [Batch, Seq, d_model]
+        return resid[:, self.n_prefix:self.n_prefix + self.n_middle, :]
 
     def apply_chat_template(self, s: str) -> str:
         return self.tokenizer.apply_chat_template(
@@ -28,9 +53,20 @@ class SubjectModel:
             add_generation_prompt=True,
         )
 
-    def tokenize(self, s: str) -> torch.Tensor:
-        return self.model.to_tokens(s) # [Batch, Seq]
+    def tokenize(self, s) -> BatchEncoding:
+        """
+        s: str or list[str]
+        Returns: (tokens [Batch, Seq], attention_mask [Batch, Seq])
+        """
+        inputs = self.tokenizer(
+            s,
+            return_tensors="pt",
+            padding=True,
+        ).to(self.device)
 
+        return inputs
+
+    # `decode` and `generate` are for visibility/sanity checking, works only for prompts of same length because no attention_mask
     def decode(self, tokens: torch.Tensor) -> str:
         return self.model.to_string(tokens)
 
