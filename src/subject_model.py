@@ -1,8 +1,12 @@
 from transformers import BatchEncoding
+from jaxtyping import Float, Int
 
 from src.pcd_config import PCDConfig
 from transformer_lens import HookedTransformer
+
 import torch
+from torch import Tensor
+
 
 class SubjectModel:
     """
@@ -28,10 +32,12 @@ class SubjectModel:
         self.n_middle = config.n_middle
         self.n_suffix = config.n_suffix
 
+        self.model.eval()
         for p in self.model.parameters():
             p.requires_grad = False
     
-    def get_middle_activations(self, tokens: torch.Tensor, attention_mask: torch.Tensor = None) -> torch.Tensor:
+    @torch.no_grad()
+    def get_middle_activations(self, tokens: Int[Tensor, "batch seq"], attention_mask: Int[Tensor, "batch seq"] = None) -> torch.Tensor:
         """
         Extract residual stream activations at l_read for the middle tokens
 
@@ -69,11 +75,11 @@ class SubjectModel:
         return inputs
 
     # `decode` and `generate` are for visibility/sanity checking
-    def decode(self, tokens: torch.Tensor) -> str:
+    def decode(self, tokens: Int[Tensor, "batch seq"]) -> str:
         return self.model.to_string(tokens)
 
-    def generate(self, s, max_new_tokens: int = 128) -> str:
+    def generate(self, s: Int[Tensor, "batch seq"], max_new_tokens: int = 128) -> str:
         """
-        s: str or list[str] — pass strings directly so TransformerLens handles padding internally (left-padding)
+        s: Int[Tensor, "batch seq"] — pass tokens, note TransformerLens handles padding internally (left-padding)
         """
         return self.model.generate(s, max_new_tokens=max_new_tokens, temperature=0, stop_at_eos=True, padding_side="left")    

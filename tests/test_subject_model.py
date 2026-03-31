@@ -30,4 +30,4 @@ for seq in output:
 
 # Extract middle activations
 middle_activations = my_subject_model.get_middle_activations(tokens, attention_mask)
-print("middle activations shape", middle_activations.shape) # [batch, n_middle, d_model]
+print("middle activations shape", middle_activations.shape) # [batch, n_middle, vocab_size]
