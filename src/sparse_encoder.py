@@ -1,4 +1,4 @@
-0from torch import nn
+from torch import nn
 import torch
 from jaxtyping import Float, Int
 from torch import Tensor
@@ -121,16 +121,14 @@ class SparseEncoder(nn.Module):
 
         # Additional Metadata
         aux_loss = self._compute_aux_loss(pre_act)
-
-        n_active = (self.steps_since_active < self.config.dead_concept_window).sum().item()
+        n_dead = (self.steps_since_active >= self.dead_concept_steps).sum().item()
         
         info = {
             "aux_loss": aux_loss,
-            "n_active_concepts": n_active,
-            "n_dead_concepts": self.n_concepts - n_active,
-            "mean_top_val": top_vals.mean().item(),
+            "n_dead": n_dead,
+            "n_alive": self.n_concepts - n_dead,
+            "mean_top_act": top_vals.mean().item()      
         }
-
         return encoded, info
                 
     def _compute_aux_loss(
@@ -144,7 +142,7 @@ class SparseEncoder(nn.Module):
         n_dead = dead_mask.sum().item()
 
         if n_dead == 0:
-            return torch.tensor(0.0, device=pre_act.device, dtype=pre_act.dtype)
+            return torch.tensor(0.0, device=pre_act.device, dtype=pre_act.dtype), 0
 
         # Boost loss by negative mean of top k_aux dead pre-activation concepts
         all_dead_pre_act = pre_act[:, :, dead_mask] # [batch, seq, n_dead]
