@@ -37,21 +37,30 @@ class SubjectModel:
             p.requires_grad = False
     
     @torch.no_grad()
-    def get_middle_activations(self, tokens: Int[Tensor, "batch seq"], attention_mask: Int[Tensor, "batch seq"] = None) -> torch.Tensor:
+    def get_middle_activations(self, tokens: Int[Tensor, "batch seq"], attention_mask: Int[Tensor, "batch seq"], start_extract: int, end_extract: int) -> torch.Tensor:
         """
         Extract residual stream activations at l_read for the middle tokens
 
-        tokens: [Batch, Seq]
-        prefix_len: number of prefix tokens to skip
-        middle_len: number of middle tokens to extract
-        attention_mask: [Batch, Seq] — needed for padded batches
+        FineWeb (pretraining + finetuning)  : "prefix" + "middle" with fixed lengths from PCDConfig
+        SynthSys (finetuning)               : "system" + "user" with variable lengths
+        Deployment (inference)              : "user" 
 
-        Returns: [Batch, middle_len, d_model]
+        Args:
+            tokens (Int[Tensor, "batch seq"): Inputs to model
+            
+            attention_mask (Int[Tensor, "batch seq"]): Which tokens to attend to
+            
+            start_extract (int): Positions to start extracting from
+
+            end_extract (int): Position to stop extracting from
+
+        Returns: 
+            residuals at the extraction positions of shape [batch, end_extract-start_extract, d_model]
         """
         hook_name = f"blocks.{self.config.l_read}.hook_resid_pre"
         _, cache = self.model.run_with_cache(tokens, names_filter=hook_name, attention_mask=attention_mask)
         resid = cache[hook_name]  # [Batch, Seq, d_model]
-        return resid[:, self.n_prefix:self.n_prefix + self.n_middle, :]
+        return resid[:, start_extract:end_extract, :]
 
     def apply_chat_template(self, s: str) -> str:
         return self.tokenizer.apply_chat_template(

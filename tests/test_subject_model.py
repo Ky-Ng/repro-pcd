@@ -8,15 +8,17 @@ my_subject_model = SubjectModel(config)
 
 
 prompts = [
-    "Please explain Transluce's Predictive Concept Decoders.", # Refuses because model doesn't know about PCDs
-    "Please explain why the sky is blue." # No refusal because knows answer
+    # Refuses because model doesn't know about PCDs
+    "Please explain Transluce's Predictive Concept Decoders.",
+    "Please explain why the sky is blue."  # No refusal because knows answer
 ]
 
-prompts_with_template = [my_subject_model.apply_chat_template(prompt) for prompt in prompts]
+prompts_with_template = [
+    my_subject_model.apply_chat_template(prompt) for prompt in prompts]
 
 inputs = my_subject_model.tokenize(prompts_with_template)
-tokens = inputs.input_ids # [batch, seq]
-attention_mask = inputs.attention_mask # [batch, seq]
+tokens = inputs.input_ids  # [batch, seq]
+attention_mask = inputs.attention_mask  # [batch, seq]
 
 for seq in tokens:
     print("tokens", seq)
@@ -29,5 +31,12 @@ for seq in output:
     print("decoded output tokens", my_subject_model.decode(seq))
 
 # Extract middle activations
-middle_activations = my_subject_model.get_middle_activations(tokens, attention_mask)
-print("middle activations shape", middle_activations.shape) # [batch, n_middle, vocab_size]
+middle_activations = my_subject_model.get_middle_activations(
+    tokens,
+    attention_mask,
+    start_extract=config.n_prefix,
+    end_extract=config.n_prefix+config.n_middle
+)
+
+# [batch, n_middle, vocab_size]
+print("middle activations shape", middle_activations.shape)
