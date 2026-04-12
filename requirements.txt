@@ -5,3 +5,4 @@ datasets>=2.16.0
 accelerate>=0.25.0
 tqdm
 anthropic
+jaxtyping
