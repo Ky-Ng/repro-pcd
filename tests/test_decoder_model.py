@@ -1,6 +1,6 @@
 import torch
 
-from src.decoder_model import DecoderModel
+from src.architecture.decoder_model import DecoderModel
 from src.pcd_config import PCDConfig
 
 

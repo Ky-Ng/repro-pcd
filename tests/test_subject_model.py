@@ -1,5 +1,5 @@
 from src.pcd_config import PCDConfig
-from src.subject_model import SubjectModel
+from src.architecture.subject_model import SubjectModel
 
 print("Testing PCD Subject Model")
 

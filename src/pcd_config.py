@@ -16,7 +16,7 @@ class PCDConfig:
         "left"  # Use left padding, training unaffected since seq len same per batch, only for bulk inference
     )
     d_model: int = 1536  # Specific to Qwen2.5-1.5B, https://transformerlensorg.github.io/TransformerLens/generated/model_properties_table.html
-    n_vocab: int = 151936 
+    n_vocab: int = 151936
 
     # Subject Model
     l_read: int = 14  # Read activations 1/2 way through the model (28 layers)
@@ -52,3 +52,9 @@ class PCDConfig:
             "down_proj",
         ]
     )
+
+    # Training Configurations
+    max_train_steps = 4000
+    warmup_steps = 0
+    lr = 1e-4
+

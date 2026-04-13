@@ -1,7 +1,7 @@
 import torch
 
 from src.pcd_config import PCDConfig
-from src.sparse_encoder import SparseEncoder
+from src.architecture.sparse_encoder import SparseEncoder
 
 
 config = PCDConfig()

@@ -6,3 +6,4 @@ accelerate>=0.25.0
 tqdm
 anthropic
 jaxtyping
+matplotlib
