@@ -1,7 +1,7 @@
 # Plot the cosine scheduling rates for the encoder and decoder
 
 from src.pcd_config import PCDConfig
-from src.scripts.training.lr_scheduling import _step_cosine_schedule_with_warmup
+from src.training.lr_scheduling import _step_cosine_schedule_with_warmup
 import matplotlib.pyplot as plt
 
 

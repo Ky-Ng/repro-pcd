@@ -7,6 +7,7 @@ class PCDConfig:
     # GPU Setup
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     dtype: torch.dtype = torch.bfloat16
+    seed: int = 422
 
     # Model
     model_name: str = (
@@ -29,6 +30,7 @@ class PCDConfig:
     n_prefix: int = 16
     n_middle: int = 16
     n_suffix: int = 16
+    tokens_per_window: int = 48
 
     # Auxiliary Loss / Dead Concept revival
     dead_concept_steps: int = (
@@ -54,7 +56,20 @@ class PCDConfig:
     )
 
     # Training Configurations
-    max_train_steps = 4000
-    warmup_steps = 0
-    lr = 1e-4
+    max_train_steps: int = 4000
 
+    lr: float = 1e-4
+    weight_decay: float = 0.01
+
+    # Effective Batch Size = batch_size * grad_accum_steps = 64
+    batch_size: int = 16
+    grad_accum_steps: int = 4
+
+    # Checkpoints for saving
+    checkpoints_dir: str = "checkpoints"
+    wandb_project: str = "PCD_reproduction"
+    log_interval: int = 50
+    save_interval: int = 1000
+
+    # Datasets
+    data_cache_dir: str = "data_cache"
