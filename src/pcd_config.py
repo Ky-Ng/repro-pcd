@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
+import os
 import torch
 
+OUTPUT_DIR = "out"
 
 @dataclass
 class PCDConfig:
@@ -38,7 +40,7 @@ class PCDConfig:
     )
     k_aux: int = 500  # max 500 dead concepts to revive, same as paper
     aux_loss_coeff: float = 1e-4
-    norm_momentum: float = 0.01 # Used to update mean/variance of encoder during training
+    norm_momentum: float = 0.01  # Used to update mean/variance of encoder during training
 
     # Decoder Model
     lora_r: int = 16
@@ -67,10 +69,11 @@ class PCDConfig:
     grad_accum_steps: int = 4
 
     # Checkpoints for saving
-    checkpoints_dir: str = "checkpoints"
+    checkpoints_dir: str = os.path.join(OUTPUT_DIR, "checkpoints")
     wandb_project: str = "PCD_reproduction"
+    wandb_dir: str = OUTPUT_DIR
     log_interval: int = 50
     save_interval: int = 1000
 
     # Datasets
-    data_cache_dir: str = "data_cache"
+    data_cache_dir: str = os.path.join(OUTPUT_DIR, "data_cache")

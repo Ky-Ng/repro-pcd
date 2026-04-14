@@ -1,8 +1,10 @@
 import os
 
 import torch
+from torch.optim import Optimizer
 
-from src.pcd_config import PCDConfig
+from src.architecture.decoder_model import DecoderModel
+from src.architecture.sparse_encoder import SparseEncoder
 
 def log_metrics(step: int, metrics: dict, prefix: str = "train"):
     """Print formatted training metrics."""
@@ -15,15 +17,15 @@ def log_metrics(step: int, metrics: dict, prefix: str = "train"):
     print(" | ".join(parts))
 
 def save_checkpoint(
-    encoder,
-    decoder,
-    optimizer,
+    encoder: SparseEncoder,
+    decoder: DecoderModel,
+    optimizer: Optimizer,
     step: int,
     loss: float,
-    config: PCDConfig,
+    checkpoint_dir: str
 ):
     """Save encoder, decoder LoRA, and optimizer state."""
-    ckpt_dir = os.path.join(config.checkpoints_dir, f"step_{step}")
+    ckpt_dir = os.path.join(checkpoint_dir, f"step_{step}")
     os.makedirs(ckpt_dir, exist_ok=True)
 
     # Encoder
