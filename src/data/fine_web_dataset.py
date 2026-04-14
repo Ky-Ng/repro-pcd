@@ -34,7 +34,7 @@ class FineWebDataset(Dataset):
     def __len__(self) -> int:
         return len(self.windows)
 
-    def __getsrc/data/fine_web_dataset.pyitem__(self, idx: int):
+    def __getitem__(self, idx: int):
         window = self.windows[idx]
         prefix = window[:self.config.n_prefix]
         middle = window[self.config.n_prefix: self.config.n_prefix +

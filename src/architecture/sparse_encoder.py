@@ -27,7 +27,7 @@ class SparseEncoder(nn.Module):
         self.register_buffer("running_mean", torch.zeros(config.d_model, dtype=torch.float32))
         self.register_buffer("running_var", torch.ones(config.d_model, dtype=torch.float32))
         self.register_buffer("n_samples", torch.tensor(0, dtype=torch.long))
-        self.norm_momentum = 0.01 # How quickly to update the mean/variance
+        self.norm_momentum = config.norm_momentum # How quickly to update the mean/variance
 
         # Auxiliary Loss + Dead Concept Tracking
         
@@ -77,8 +77,8 @@ class SparseEncoder(nn.Module):
         """
 
         if self.training:
-            batch_mean = activations.mean(dim=[0,1]) # [batch, seq, d_model] -> [d_model]
-            batch_var = activations.var(dim=[0,1]) # [batch, seq, d_model] -> [d_model]
+            batch_mean = activations.to(self.running_mean.dtype).mean(dim=[0,1]) # [batch, seq, d_model] -> [d_model]
+            batch_var = activations.to(self.running_var.dtype).var(dim=[0,1]) # [batch, seq, d_model] -> [d_model]
 
             if self.n_samples == 0:
                 self.running_mean.copy_(batch_mean)
@@ -127,6 +127,7 @@ class SparseEncoder(nn.Module):
             "aux_loss": aux_loss,
             "n_dead": n_dead,
             "n_alive": self.n_concepts - n_dead,
+            "percent_concepts_alive": self.n_concepts / n_dead,
             "mean_top_act": top_vals.mean().item()      
         }
         return encoded, info

@@ -1,4 +1,9 @@
+import os
+
+import torch
+
 from src.pcd_config import PCDConfig
+
 def log_metrics(step: int, metrics: dict, prefix: str = "train"):
     """Print formatted training metrics."""
     parts = [f"[{prefix}] step {step}"]
@@ -18,7 +23,7 @@ def save_checkpoint(
     config: PCDConfig,
 ):
     """Save encoder, decoder LoRA, and optimizer state."""
-    ckpt_dir = os.path.join(config.checkpoint_dir, f"step_{step}")
+    ckpt_dir = os.path.join(config.checkpoints_dir, f"step_{step}")
     os.makedirs(ckpt_dir, exist_ok=True)
 
     # Encoder

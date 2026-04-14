@@ -111,7 +111,11 @@ def train(config: PCDConfig, wandb_run_name: str = "Pretraining_Run") -> None:
                         end_extract=config.n_prefix + config.n_middle
                     )
 
-                # 2. Pass through Encoder, (note encoder is in FP32 but subject and decoder are in BF16)
+                # 2. Pass activations --> Encoder --> Decoder
+                # Encoder: FP32 master weights, model intermediate computations in config.dtype (via autocast)
+                # Decoder: Base weights in config.dtype (frozen), LoRA adapter weights in FP32,
+                #          all forward compute runs in config.dtype under autocast
+
                 
                 with torch.autocast(device_type=config.device, dtype=config.dtype):
                     sparse_embedding, encoder_info = encoder(activations)
@@ -151,8 +155,10 @@ def train(config: PCDConfig, wandb_run_name: str = "Pretraining_Run") -> None:
                     metrics = {
                         "loss": avg_loss,
                         "aux_loss": avg_aux,
-                        "active_concepts": encoder_info["n_active_concepts"],
-                        "dead_concepts": encoder_info["n_dead_concepts"],
+                        "active_concepts": encoder_info["n_alive"],
+                        "dead_concepts": encoder_info["n_dead"],
+                        "mean_top_act": encoder_info["mean_top_act"],
+                        "percent_concepts_alive": encoder_info["percent_concepts_alive"],
                         "lr": scheduler.get_last_lr()[0],
                     }
                     log_metrics(global_step, metrics)

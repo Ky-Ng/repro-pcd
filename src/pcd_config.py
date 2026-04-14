@@ -38,6 +38,7 @@ class PCDConfig:
     )
     k_aux: int = 500  # max 500 dead concepts to revive, same as paper
     aux_loss_coeff: float = 1e-4
+    norm_momentum: float = 0.01 # Used to update mean/variance of encoder during training
 
     # Decoder Model
     lora_r: int = 16
