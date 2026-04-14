@@ -192,8 +192,3 @@ def train(config: PCDConfig, wandb_run_name: str = "Pretraining_Run") -> None:
             checkpoint_dir=output_dir
         )
         print(f"\nPretraining complete! {global_step} steps.")
-
-
-if __name__ == "__main__":
-    config = PCDConfig()
-    train(config)

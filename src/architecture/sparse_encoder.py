@@ -122,12 +122,13 @@ class SparseEncoder(nn.Module):
         # Additional Metadata
         aux_loss = self._compute_aux_loss(pre_act)
         n_dead = (self.steps_since_active >= self.dead_concept_steps).sum().item()
-        
+        n_alive = self.n_concepts - n_dead
+
         info = {
             "aux_loss": aux_loss,
             "n_dead": n_dead,
-            "n_alive": self.n_concepts - n_dead,
-            "percent_concepts_alive": self.n_concepts / n_dead,
+            "n_alive": n_alive,
+            "percent_concepts_alive": n_alive / self.n_concepts,
             "mean_top_act": top_vals.mean().item()      
         }
         return encoded, info
