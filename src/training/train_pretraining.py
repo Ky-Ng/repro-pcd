@@ -50,7 +50,7 @@ def train(config: PCDConfig, wandb_run_name: str = "Pretraining_Run") -> None:
 
         print(f"Encoder params: {enc_params:,}")
         print(
-            f"Decoder trainable (LoRA) params: {dec_params_trainable:,} / {dec_params_total:,}")
+            f"Decoder trainable (LoRA) params: {dec_params_trainable:,} / {dec_params_total:,} = {dec_params_trainable/dec_params_total * 100:.2f}%")
 
         # Get Data
         print("Preparing data...")
@@ -108,7 +108,7 @@ def train(config: PCDConfig, wandb_run_name: str = "Pretraining_Run") -> None:
                         tokens=subject_inputs, 
                         attention_mask=torch.ones_like(subject_inputs),
                         start_extract=config.n_prefix,
-                        end_extract=config.n_middle
+                        end_extract=config.n_prefix + config.n_middle
                     )
 
                 # 2. Pass through Encoder, (note encoder is in FP32 but subject and decoder are in BF16)

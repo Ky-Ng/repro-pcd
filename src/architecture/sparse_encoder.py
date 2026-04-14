@@ -142,7 +142,7 @@ class SparseEncoder(nn.Module):
         n_dead = dead_mask.sum().item()
 
         if n_dead == 0:
-            return torch.tensor(0.0, device=pre_act.device, dtype=pre_act.dtype), 0
+            return torch.tensor(0.0, device=pre_act.device, dtype=pre_act.dtype)
 
         # Boost loss by negative mean of top k_aux dead pre-activation concepts
         all_dead_pre_act = pre_act[:, :, dead_mask] # [batch, seq, n_dead]

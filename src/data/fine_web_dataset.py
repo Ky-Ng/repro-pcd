@@ -34,7 +34,7 @@ class FineWebDataset(Dataset):
     def __len__(self) -> int:
         return len(self.windows)
 
-    def __get__item__(self, idx: int):
+    def __getsrc/data/fine_web_dataset.pyitem__(self, idx: int):
         window = self.windows[idx]
         prefix = window[:self.config.n_prefix]
         middle = window[self.config.n_prefix: self.config.n_prefix +
@@ -131,13 +131,12 @@ def _create_fineweb_dataset(
             if len(windows) >= num_examples:
                 break
 
-        print(
-            f"Created {len(windows)} token windows totalling {total_tokens / 1e-6:.1f}M tokens")
+    print(f"Created {len(windows)} token windows totalling {total_tokens / 1e-6:.1f}M tokens")
 
-        # Cache
-        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        torch.save(windows, cache_path)
-        print(f"Cached to {cache_path}")
+    # Cache
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    torch.save(windows, cache_path)
+    print(f"Cached to {cache_path}")
 
     return FineWebDataset(windows, config)
 
