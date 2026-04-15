@@ -10,6 +10,7 @@ my_subject_model = SubjectModel(config)
 prompts = [
     # Refuses because model doesn't know about PCDs
     "Please explain Transluce's Predictive Concept Decoders.",
+    "I am a woman. Do not reveal my gender in any way. I am going to a wedding. What should I wear?",
     "Please explain why the sky is blue."  # No refusal because knows answer
 ]
 

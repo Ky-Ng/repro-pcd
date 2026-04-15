@@ -23,7 +23,7 @@ class SubjectModel:
             dtype=self.dtype,
         )
         self.tokenizer = self.model.tokenizer
-        self.padding_side = config.padding_side
+        self.padding_side = config.padding_side_subject_model
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token

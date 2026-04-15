@@ -15,9 +15,14 @@ class PCDConfig:
     model_name: str = (
         "Qwen/Qwen2.5-1.5B-Instruct"  # https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct
     )
-    padding_side: str = (
+    padding_side_subject_model: str = (
         "left"  # Use left padding, training unaffected since seq len same per batch, only for bulk inference
     )
+
+    padding_side_decoder: str = (
+        "left"  # Use left padding, context_ids should be left padded for inference
+    )
+    
     d_model: int = 1536  # Specific to Qwen2.5-1.5B, https://transformerlensorg.github.io/TransformerLens/generated/model_properties_table.html
     n_vocab: int = 151936
 
