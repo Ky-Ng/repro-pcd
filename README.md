@@ -4,7 +4,7 @@
 1. Blogpost: [doingtheth.ing](https://doingtheth.ing/notes/projects/pcd/) (details the math behind PCDs)
 2. Latest Training Run: [Wandb Pretraining Run](https://api.wandb.ai/links/kgng-usc/ed6mrtg9)
 3. HuggingFace Artifacts: [kylelovesllms/hand-repro-pcd](https://huggingface.co/kylelovesllms/hand-repro-pcd/tree/main)
-4. Original paper by Transluce, [Predictive Concept Decoders: Training Scalable End-to-End Interpretability Assistants](https://arxiv.org/abs/2512.15712)
+4. Original paper by Transluce: [Predictive Concept Decoders: Training Scalable End-to-End Interpretability Assistants](https://arxiv.org/abs/2512.15712)
 
 > Attempted 1 day hackathon to build Predictive Concept Decoders (PCDs) on a Student Budget turned into multi-month deep research side quest!
 
