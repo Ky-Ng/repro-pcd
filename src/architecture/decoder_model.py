@@ -5,7 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from src.pcd_config import PCDConfig
 
-from jaxtyping import Float, Int, Bool
+from jaxtyping import Float, Int
 from torch import Tensor
 
 IGNORE_INDEX = -100
@@ -41,7 +41,7 @@ class DecoderModel(nn.Module):
         soft_token_acts: Float[Tensor, "batch n_soft d_model"],
         target_ids: Int[Tensor, "batch n_target"],
         context_ids: Int[Tensor, "batch n_context"] | None = None,
-        soft_token_mask: Bool[Tensor, "batch n_soft"] | None = None
+        soft_token_mask: Int[Tensor, "batch n_soft"] | None = None
     ) -> Float[Tensor, ""]:
         """
         Args:
@@ -54,7 +54,7 @@ class DecoderModel(nn.Module):
                 Right-padded with pad_token_id when batching variable-length sequences. 
                 Not used during pretraining.
                 Loss is not calculated on these tokens
-            soft_token_mask (Bool[Tensor, "batch n_soft d_model"]):
+            soft_token_mask (Int[Tensor, "batch n_soft"]):
                 Optional token mask for soft_token_acts
         
         Returns:
@@ -79,14 +79,14 @@ class DecoderModel(nn.Module):
             - These lengths are always fixed, no padding needed
         
         Visual for Finetune SynthSys:
-            [Dummy tokens  ] + [query_token_ids] + [target_ids (single letter for MCQ)]
+            [Dummy tokens  ] + [context_ids] + [target_ids (single letter for MCQ)]
                     |               |                   |
         embed       |               |                   |
                     x               |                   |
                   patch             |                   |
                     |               |                   |
                     v               v                   v
-            [soft_token_act] + [query_embeds]    + [suffix_embed]
+            [soft_token_act] + [context_ids] + [suffix_embed]
                     *                                   ^Loss calculated only on target (single MCQ letter answer)
             [soft_token_mask]
 
@@ -95,28 +95,14 @@ class DecoderModel(nn.Module):
             - `target_ids` will be a single letter representing the MCQ token (though may change based on the finetuning dataset)
             - `context_ids` will be right-padded with pad_token_id
         """
-        B, n_soft, _d = soft_token_acts.shape
-        n_target = target_ids.shape[1]
         token_embedding_layer = self.model.get_input_embeddings()
 
-        # Step 1) Build input to the model
-        embed_parts = [soft_token_acts]
-        mask_parts = [soft_token_mask if soft_token_mask is not None 
-                            else torch.ones(B, n_soft, 
-                                       device=soft_token_acts.device, 
-                                       dtype=torch.long
-                            )
-                        ]
-        input_len = n_soft
-
-        # Optionally add in context tokens if provided
-        if context_ids is not None:
-            context_embeds = token_embedding_layer(context_ids)
-            embed_parts.append(context_embeds)
-            mask_parts.append(
-                (context_ids != self.tokenizer.pad_token_id).long()
-            )
-            input_len += context_embeds.shape[1]
+        embed_parts, mask_parts, input_len = self._build_inputs(
+            token_embedding_layer=token_embedding_layer,
+            soft_token_acts=soft_token_acts,
+            soft_token_mask=soft_token_mask,
+            context_ids=context_ids,
+        )
 
         # Target embedding tokens
         # subtract 1 since we don't have a ground truth for the last token  
@@ -125,7 +111,7 @@ class DecoderModel(nn.Module):
 
         # note: target_embeds is only a single token for SynthSys but we keep the implementation extensible
         mask_parts.append(
-            (target_ids[:, :n_target-1] != self.tokenizer.pad_token_id).long() 
+            (target_ids[:, :-1] != self.tokenizer.pad_token_id).long() 
         )
         
         # Prep inputs to model
@@ -153,9 +139,71 @@ class DecoderModel(nn.Module):
 
         return loss
 
-    def forward_inference(
+
+    @torch.no_grad()
+    def generate(
+        self,
+        soft_token_acts: Float[Tensor, "batch n_soft d_model"],
+        soft_token_mask: Int[Tensor, "batch n_soft"] | None = None,
+        context_ids: Int[Tensor, "batch n_context"] | None = None,
+        max_new_tokens: int = 256,
+        do_sample: bool = False,
+    ) -> list[str]:
+        embed_parts, mask_parts, input_len = self._build_inputs(
+            token_embedding_layer=self.model.get_input_embeddings(),
+            soft_token_acts=soft_token_acts,
+            soft_token_mask=soft_token_mask,
+            context_ids=context_ids,
+        )
+
+        input_embeds = torch.cat(embed_parts, dim=1) # [B, total_len, d_model]
+        attention_mask = torch.cat(mask_parts, dim=1) # [B, total_len]
+
+        output_ids = self.model.generate(
+            inputs_embeds=input_embeds,
+            attention_mask=attention_mask,
+            max_new_tokens=max_new_tokens,
+            do_sample=do_sample,
+            pad_token_id=self.tokenizer.pad_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
+        )
+
+        return self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        
+    def _build_inputs(
+        self,
+        token_embedding_layer: nn.Embedding,
         soft_token_acts: Float[Tensor, "batch n_soft d_model"],
         context_ids: Int[Tensor, "batch n_context"] | None = None,
-        soft_token_mask: Bool[Tensor, "batch n_soft"] | None = None   
-    ) -> Float[Tensor, "batch n_soft n_vocab"]:
+        soft_token_mask: Int[Tensor, "batch n_soft"] | None = None,
+    ) -> tuple[
+            list[Float[Tensor, "batch len d_model"]], 
+            list[Int[Tensor, "batch len"]], 
+            int
+        ]:
+        """
+        Helper to concatentate [soft_token_acts] + [embed(context_ids)] with appropriate masking
+        """
+
+        B, n_soft, _d = soft_token_acts.shape
         
+        # Step 1) Build input to the model
+        embed_parts = [soft_token_acts]
+        mask_parts = [soft_token_mask if soft_token_mask is not None 
+                            else torch.ones(B, n_soft, 
+                                       device=soft_token_acts.device, 
+                                       dtype=torch.long
+                            )
+                        ]
+        input_len = n_soft
+
+        # Optionally add in context tokens if provided
+        if context_ids is not None:
+            context_embeds = token_embedding_layer(context_ids)
+            embed_parts.append(context_embeds)
+            mask_parts.append(
+                (context_ids != self.tokenizer.pad_token_id).long()
+            )
+            input_len += context_embeds.shape[1]
+        
+        return embed_parts, mask_parts, input_len
