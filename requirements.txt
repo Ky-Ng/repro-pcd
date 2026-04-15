@@ -1,0 +1,11 @@
+torch>=2.1.0
+transformers>=4.36,<5
+peft>=0.7.0
+datasets>=2.16.0
+accelerate>=0.25.0
+tqdm
+anthropic
+jaxtyping
+matplotlib
+wandb
+transformer-lens
