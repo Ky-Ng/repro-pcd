@@ -16,13 +16,14 @@ suffix_ids = torch.randint(
     low=0, high=config.n_vocab, size=[batch, config.n_suffix], device=config.device
 )
 
-pretrain_loss = my_decoder_model.forward_train(soft_token_acts, suffix_ids)
-
-print("#"*20)
 print("Soft Token Activations shape", soft_token_acts.shape)
 print("Suffix IDs shape", suffix_ids.shape)
 
-print("#"*20)
+print("#"*20, "Test Forward Train with Soft Tokens only", "#"*20)
+pretrain_loss = my_decoder_model.forward_train(soft_token_acts, suffix_ids)
+print("finetune loss on sample soft tokens acts", pretrain_loss)
+
+print("#"*20, "Test Forward Train with Soft Tokens and Context Tokens", "#"*20)
 print("pretraining loss on sample soft tokens acts and suffix ids", pretrain_loss)
 
 context_ids = torch.randint(
@@ -35,5 +36,21 @@ fine_tune_loss = my_decoder_model.forward_train(
     soft_token_mask=torch.ones(batch, config.n_prefix, device=config.device)
 )
 
-print("#"*20)
 print("finetune loss on sample soft tokens acts and suffix ids", fine_tune_loss)
+
+print("#"*20, "Test Generate Function", "#"*20)
+output = my_decoder_model.generate(
+    soft_token_acts=soft_token_acts,
+    soft_token_mask=torch.ones([batch, soft_token_acts.shape[1]], dtype=torch.long, device=soft_token_acts.device),
+    context_ids=context_ids,
+    max_new_tokens=256,
+    do_sample=False
+)
+
+for b in range(batch):
+    print("Batch 1 Decode")
+    print("Num Tokens: ", len(output[b]))
+
+    print("<START DECODE>")
+    print(output[b])
+    print("<END DECODE>")
