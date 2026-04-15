@@ -20,7 +20,7 @@ class SparseEncoder(nn.Module):
         self.k_aux = config.k_aux
         self.n_concepts = config.n_concepts
         
-        self.dead_concept_steps = config.dead_concept_steps
+        self.dead_concept_tokens_thresh = config.dead_concept_tokens_thresh
         self.aux_loss_coeff = config.aux_loss_coeff
 
         # Batch Statistics for pre-up projection normalization
@@ -33,7 +33,7 @@ class SparseEncoder(nn.Module):
         
         # Used to track concept death
         self.register_buffer(
-            "steps_since_active", torch.zeros(config.n_concepts, dtype=torch.long)
+            "tokens_since_active", torch.zeros(config.n_concepts, dtype=torch.long)
         )
 
         # Used for training metadata
@@ -117,11 +117,12 @@ class SparseEncoder(nn.Module):
         encoded = self.W_emb(sparse_concepts)
 
         if self.training:
-            self._update_concept_usage(top_idx)
+            num_tokens = activations.shape[0] * activations.shape[1] # Batch * Seq
+            self._update_concept_usage(top_idx, num_tokens)
 
         # Additional Metadata
         aux_loss = self._compute_aux_loss(pre_act)
-        n_dead = (self.steps_since_active >= self.dead_concept_steps).sum().item()
+        n_dead = (self.tokens_since_active >= self.dead_concept_tokens_thresh).sum().item()
         n_alive = self.n_concepts - n_dead
 
         info = {
@@ -140,7 +141,7 @@ class SparseEncoder(nn.Module):
         Compute auxiliary loss for dead concept revival
         """
 
-        dead_mask = self.steps_since_active >= self.dead_concept_steps
+        dead_mask = self.tokens_since_active >= self.dead_concept_tokens_thresh
         n_dead = dead_mask.sum().item()
 
         if n_dead == 0:
@@ -155,19 +156,19 @@ class SparseEncoder(nn.Module):
 
         return aux_loss
 
-    def _update_concept_usage(self, top_idx: Int[Tensor, "batch seq n_concepts"]) -> None:
+    def _update_concept_usage(self, top_idx: Int[Tensor, "batch seq n_concepts"], num_tokens: int) -> None:
         """
         Update concept "age" how close it is to death and metadata on concept usage
         """
         self.total_steps += 1
 
         # Increase age of each concept
-        self.steps_since_active += 1
+        self.tokens_since_active += num_tokens
 
         # Reset age for active concepts in this batch
 
         fired = top_idx.unique() # [k_concepts]
-        self.steps_since_active[fired] = 0
+        self.tokens_since_active[fired] = 0
         self.concept_usage[fired] += 1
     
     def get_top_concepts(

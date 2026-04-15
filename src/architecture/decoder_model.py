@@ -41,7 +41,7 @@ class DecoderModel(nn.Module):
         soft_token_acts: Float[Tensor, "batch n_soft d_model"],
         target_ids: Int[Tensor, "batch n_target"],
         context_ids: Int[Tensor, "batch n_context"] | None = None,
-        soft_token_mask: Bool[Tensor, "batch n_soft d_model"] | None = None
+        soft_token_mask: Bool[Tensor, "batch n_soft"] | None = None
     ) -> Float[Tensor, ""]:
         """
         Args:
@@ -152,3 +152,10 @@ class DecoderModel(nn.Module):
         )
 
         return loss
+
+    def forward_inference(
+        soft_token_acts: Float[Tensor, "batch n_soft d_model"],
+        context_ids: Int[Tensor, "batch n_context"] | None = None,
+        soft_token_mask: Bool[Tensor, "batch n_soft"] | None = None   
+    ) -> Float[Tensor, "batch n_soft n_vocab"]:
+        

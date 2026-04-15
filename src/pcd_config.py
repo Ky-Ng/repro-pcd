@@ -9,7 +9,7 @@ class PCDConfig:
     # GPU Setup
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     dtype: torch.dtype = torch.bfloat16
-    seed: int = 422
+    seed: int = 42
 
     # Model
     model_name: str = (
@@ -35,11 +35,11 @@ class PCDConfig:
     tokens_per_window: int = 48
 
     # Auxiliary Loss / Dead Concept revival
-    dead_concept_steps: int = (
-        1000  # If a concept has not been used in 1000 steps, it will be marked as dead
+    dead_concept_tokens_thresh: int = (
+        1_000_000  # If a concept has not been used in 1M tokens, it will be marked as dead
     )
     k_aux: int = 500  # max 500 dead concepts to revive, same as paper
-    aux_loss_coeff: float = 1e-4
+    aux_loss_coeff: float = 1 / 32  # Gao et al. (OpenAI TopK SAE) default; note: paper uses 1e-4
     norm_momentum: float = 0.01  # Used to update mean/variance of encoder during training
 
     # Decoder Model
@@ -59,7 +59,7 @@ class PCDConfig:
     )
 
     # Training Configurations
-    max_train_steps: int = 4000
+    max_train_steps: int = 20000
 
     lr: float = 1e-4
     weight_decay: float = 0.01
@@ -73,7 +73,7 @@ class PCDConfig:
     wandb_project: str = "PCD_reproduction"
     wandb_dir: str = OUTPUT_DIR
     log_interval: int = 50
-    save_interval: int = 1000
+    save_interval: int = 2500
 
     # Datasets
     data_cache_dir: str = os.path.join(OUTPUT_DIR, "data_cache")
