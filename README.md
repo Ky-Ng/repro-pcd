@@ -1,234 +1,136 @@
 # Reproducing `Predictive Concept Decoders` (PCD) on a Student's Budget
-Start Date: Feb. 7th, 2026, picked up again on March 27th, 2026
 
-Github: [github.com/Ky-Ng/repro-pcd](https://github.com/Ky-Ng/repro-pcd)
-
-Latest Training Run: [Wandb Pretraining Run](https://api.wandb.ai/links/kgng-usc/ed6mrtg9)
-
-HuggingFace Artifacts: [kylelovesllms/hand-repro-pcd](https://huggingface.co/kylelovesllms/hand-repro-pcd/tree/main)
-
-- Attempted 1 day hackathon to build PCDs on a Student Budget turned into multi-month deep research side quest!
-
-- Original paper by Transluce, [Predictive Concept Decoders: Training Scalable End-to-End Interpretability Assistants](https://arxiv.org/abs/2512.15712)
-
-???+ note "Motivation"
-    - I had the opportunity to see Sarah Schwettmann present PCDs at the NeurIPS 2025 MechInterp Workshop! I didn't have the Interp understanding at the time to grasp the concepts (other than, *wow this is really cool!*)
-    - It's been 62 days since NeurIPS 2025, looking to try my hand at reproducing SOTA research
-        - Also been wanting to work on this since my week at LISA but have been battling catching up with the school I missed while in the UK! Looking to timebox this into a single Saturday at the library!
-
-## High Level Plan
-
-Goal: Reproduce the most important aspects of PCDs (1) Encoder/Decoder Architecture (2) Pretraining/FT (3) Understand $L_{aux}$
-
-0. Understand math/intuition behind PCDs
-
-1. Implement Encoder/Decoder Architecture (w/ soft tokens from $l_{read}$ to $l_{write}$ and Top-K) with uninitialized weights
-
-2. Find datasets: FineWeb for Pretraining and a SynthSys equivalent for Finetuning
-
-3. Setup training infrastructure: (GPU), LoRA adaptors, Loss functions and $L_{aux}$
-
-4. Run training loop pretraining
-
-5. Sanity check encoder concepts using AutoInterp Labeler
-
-6. Run training loop finetuning
-
-7. Attempt to uncover a hidden goal using PCD corroborated by Encoder Concepts
-
-8. Open source streamlined version/tutorial/ReadMe (maybe LessWrong post?)
-
-- Use AI models (e.g. Claude) to help understand and scaffold code but not Coding Agents (e.g. Claude Code) to get the intuitions and practice of building by hand
-
-## What about "Student Budget"?
-
-- I hope that this reproduction will be accessible to other people (especially students like me!)
-
-- Training on a GPU seems fun to setup, there should be some pretty economical options (ARBOx used Runpod/Vast)!
-
-- To Pareto Principle (80-20) this, we will skip the evals/baselines section. Assuming we've followed the paper correctly, we do not need to verify we're doing better than baselines (also this is more for educational purposes)
-
-## Math Deep Dive
-
-- Feel free to skp this section! This is for me to understand the math/intuition behind how PCDs work and hopefully generate a very cool and intuitive walkthrough explanation!
-
-### Architecture
-
-$\mathcal{S}$ = Subject Model we're trying to interpret
-
-$\mathcal{E}$ = Encoder, maps activation $a$ from subject model $S$ to a sparse set of concepts
-
-$\mathcal{D}$ = Decoder from sparse set of concepts to natural language; same architecture/initialized to $\mathcal{S}$ with a LoRA adapter
-
-Figure 2 from the paper:
-![PCD Architecture](../../assets/projects/pcd/pcd_arch.png)
-
-#### Encoder
-
-let $a^{(i)} \in \mathbb{R}^{d}$ be an activation from layer $l_{read}$ in $\mathcal{S}$ at token position $i$ where $d$ is the dimensionality of the activation (usually residual stream)
-
-let $m$ be the number of directions or `concepts` in the encoder's concept dictionary
-
-let $W_{enc} \in \mathbb{R}^{m \times d}$, each row represents a concept ("template") in the Encoder space
-
-$$\mathcal{E}(a) = \text{how strongly each of the m concepts are expressed} \in \mathbb{R}^m$$
-
-$$\mathcal{E}(a) = (W_{enc}(a^{(i)})+ b_{enc}) \in \mathbb{R}^m$$
-
-<small>Quick aside: The encoder-decoder architecture is similar to the 1-layer MLP from SAEs (similar sparsity penalty). However, the big difference is the training objective, SAEs $W_{enc}$ learn concepts useful to reconstruction the activations (hence `auto` in `auto-encoder`), meanwhile PCDs $W_{enc}$ learn concepts useful for the decoder to decode model behavior into natural language</small>
-
-#### Sparsity $TopK$
-
-- Sparsity constraint; $k=16$ in the paper
-
-$$ TopK(\cdot) = \text{zero out all but the $k$ largest entries}$$
-
-#### Decoder 
-
-let $W_{emb} \in \mathbb{R}^{d \times m}$ map the sparse concept list into activation space for the decoder $\mathcal{D}$ to use
-    - Note that the `emb` name comes from how the output of the encoder-decoder $a'^(i)$ is patched into the embedding of decoder $\mathcal{D}$
-
-let $a'^{(i)} \in \mathbb{R}^d$ be the patched activation into the decoder $\mathcal{D}$, written to decoder layer $l_{write}$
-
-$$ \mathcal{D}(a) = W_{emb} (TopK(\mathcal{E}(a)))$$
-
-Formula (1) from the paper:
-$$ a'^{(i)} = W_{emb}(TopK(W_{enc}(a^{(i)}) + b_{enc})) $$
-
-### Training
-
-Adapted from bullet list at end of Section 2 in paper:
-
-| Training Phase | Task | Intuition | Example | 
-| -------------- | ---- | --- | --- |
-| Pretraining    | Jointly train $\mathcal{E}$ and $\mathcal{D}$ on next-token prediction of FineWeb | Have $\mathcal{E}$ learn a sparse concept dictionary by predicting completions (what comes next) | "Curious George and the Man in the Yellow Hat went to the zoo. They saw `<COMPLETION>`", $\mathcal{E}$ should learn general concepts (e.g. agents, objects, animals) to predict the `<COMPLETION>` |
-| Finetuning | Freeze $\mathcal{E}$ and finetune $\mathcal{D}$ on QA about model beliefs | In pretraining we already learned concept dictionaries, now interpret this concept dictionary to talk about model beliefs; imagine a person given a really good dictionary of concepts for a story and asked to write a story about what the model is thinking | "Curious George and the Man in the Yellow Hat went to the zoo. They saw `<COMPLETION>`"; the completion is now "the model believes there are two characters and is thinking about animals, specifically zebras and lions" |
-
-#### Pretraining
-
-let $n_{prefix}$, $n_{middle}$, and $n_{suffix}$ be the lengths of the tokens of the prefix, middle, and suffix of the prompt $P$
-
-$$ P = p^{({1:n_{prefix}})} + p^{({n_{prefix}:n_{middle}})} + p^{({n_{middle}:n_{suffix}})} $$
-
-To make our lives easier:
-
-- let $s^{({1:n_{suffix}})}$ be the suffix (in finetuning, the explanation of model behavior) that the decoder $\mathcal{D}$ is trying to predict, represented above as the corresponding tokens ($p^{({n_{middle}:n_{suffix}})}$)
-
-- let $ a^{(1:n_{middle})} \in \mathbb{R}^d$ be the activations from $\mathcal{S}$ at layer $l_{read}$ for the middle tokens (don't include the activations from the prefix $p^{({1:n_{prefix}})}$!). 
-
-From $a^{(1:n_{middle})}$, predict suffix tokens $s^{({1:n_{suffix}})}$.
-
-Formally from equation 2 in the paper the loss $\mathcal{L}_{next-tokens}$:
-
-$$ \mathcal{L}_{next-tokens} = - \sum_{t=1}^{n_{suffix}} \log p_{\mathcal{D}} (s^{(t)} | s^{(1:t-1)}, \mathcal{E}(a^{(1:n_{middle})})) $$
-
-- In plain English: we minimize loss when predicting the suffix tokens from the previous suffix tokens and the encoded middle activations
-
-![PCD Pretraining](../../assets/projects/pcd/PCD_Pretraining.png)
-
-??? note "Aside on`communication bottleneck`"
-    We never explicitly see the activations of the prefix tokens. Why?!
-
-    1. In the pretraining task, the decoder is doing good ol' next-token prediction.
-
-    2. If the prefix tokens were also passed into the decoder, since the decoder's pretraining task is predicting the suffix (e.g. `a` `bomb`), the encoder could learn to pass through a version of the token embedding rather than interpretable/useful concepts
-
-    3. If we take away the TopK, given that $m$ (the size of the up projection of the encoder) is much larger than $d$, then we could literally pass the token embedding. Although we do have a TopK which enforces sparsity, the same idea applies that the encoder could not actually learn meaningful information.
-
-    ![Thought Experiment: PCD Pretraining with Prefix Token Activations](../../assets/projects/pcd/PCD_Pretraining_with_Prefix.png)
-
-##### Auxiliary Loss `Maintaining Concept Activity`
-
-Intuition: For concepts that are very close to being activated but not selected, let those concepts get a little bit of gradient so they can become more aligned with being useful for the decoder
-<small>This feels a little bit like the aux loss in Mixture of Experts (MoE)!</small>
-
-let $I$ be the set of inactive concepts with the highest dot product with $a$ (almost activated/selected but not quite), where inactive means the concept has not been selected in the TopK for the last 1M tokens
-
-let $k_{aux} = |I|$
-
-let $\epsilon_{aux}$ be a scalar of the gradient to backpropogate into the inactive concept selected, in the paper $\epsilon_{aux} = 10^{-4}$
-
-We have divide by $k_{aux}$ in $ \frac{\epsilon_{aux}}{k_{aux}} $ because imagine if we have more inactive concepts, we don't want to overload the loss (normalize the aux loss by the number of inactive concepts we want to help revive)
-
-$$ \mathcal{L}_{aux} = - \frac{\epsilon_{aux}}{k_{aux}} \sum_{i \in I} W_{enc, i}(a) $$
-
-#### Concept Auto-Labelling
-- After pretraining, the encoder is frozen, thus, it's possible to use an LLM to label a given concept given top-activating prompts
-
-#### Finetuning
-- Use SynthSys (a dataset where the model has an implicit assumption about the user known as a `user model`)
-- Mix in Pretraining (FineWeb) sequences at 50% to reduce "catastrophic forgetting" (LoRA Decoder weights learned in pretraining changed so that model can no longer perform continuations on the Subject model)
-- Train using the same loss function as in Pretraining except middle is prompt activations, decoder also a user prompt.
-
-![PCD Fineutning](../../assets/projects/pcd/PCD_Finetuning.png)
-
-## Finetuning Deep Dive
-
-Three main steps to 
-
-| Dataset | Percentage | Motivation |
-| --- | --- | --- |
-| Fineweb | 50% | Prevent Catastrophic Forgetting | 
-| SynthSys | 50% | Teach decoder how to reason about decoder features |
-
-The finetuning steps do two pretty amazing things:
-
-1. The SynthSys dataset consists of a user attribute in the system prompt and A/B/C/D Multiple Choice Question (MCQ) response
-
-2. The model is able to generalize not just MCQ answers to Out of distribution (OOD) attributes
-
-3. Model generalizes to multi-token natural language 
-
-### SynthSys(8B) Template
-Below is Figure 6 from the paper of how the SynthSys(8B) from ([Choi et al. 2025](https://transluce.org/user-modeling)) is structured
-
-![SynthSys](../../assets/projects/pcd/Figure_6_SynthSys.png)
-
-???+ "Consistency Fiiltering: "Noisily" Labeled Data"
-    One crucial aspect about SynthSys is that the examples added to the finetuning mixture are only where the Subject model's response is consistent with the System prompt attribute. Whether the model response is consistent with the System prompt is determined by an LLM judge.
-    
-    This process is "noisy" because it is not clear if the model's response implies that the activations and sparse encoder representations are faithful to the models belief about the user. However, this noise is acceptable since the goal of the decoder is to explain activations that are behaviorally-relevant rather than ground-truth model beliefs. (e.g. does activation of feature 1493 really mean "male"? It's ok if it doesn't because we're trying to predict the behavior of the subject model continuing with generation that describes the user with male qualities)
-
-#### SynthSys Curation
-
-Goal: Allow the decoder to learn how to decode frozen encoder concepts into descriptions of the model internals (rather than a continuation of the user prompt). The decoder prompt is a MCQ on what it is thinking about the user(note that the goal is that this training will generalize from the MCQ single token A/B/C/D response to multi-token descriptions)
-
-![SynthSys Process](../../assets/projects/pcd/SynthSysProcess.png)
-
-1. Generate a series of attributes (e.g. ethnicity, gender, age, profession, dietary restrictions \[vegan/non-vegan]) and split all but 2 for decoder fine tuning
-
-2. Prompt the Subject Model $\mathcal{S}$ in the format:
-
-```
-<SYSTEM>: The user is <ATTRIBUTE> (e.g. female)
-
-<USER>: What could I wear to a wedding?
+## Hotlinks 🌭
+1. Blogpost: [doingtheth.ing](https://doingtheth.ing/notes/projects/pcd/) (details the math behind PCDs)
+2. Latest Training Run: [Wandb Pretraining Run](https://api.wandb.ai/links/kgng-usc/ed6mrtg9)
+3. HuggingFace Artifacts: [kylelovesllms/hand-repro-pcd](https://huggingface.co/kylelovesllms/hand-repro-pcd/tree/main)
+4. Original paper by Transluce, [Predictive Concept Decoders: Training Scalable End-to-End Interpretability Assistants](https://arxiv.org/abs/2512.15712)
+
+> Attempted 1 day hackathon to build Predictive Concept Decoders (PCDs) on a Student Budget turned into multi-month deep research side quest!
+
+## Motivation
+- I had the opportunity to see Sarah Schwettmann present Predictive Concept Decoders (PCDs) at the NeurIPS 2025 MechInterp Workshop! I didn't have the Interp understanding at the time to grasp the concepts (other than, *wow this is really cool!*)
+- The goal of reproducing PCDs is two fold:
+	1. Learn skills needed for SOTA Interp research by  struggling through the math and programming *by hand*
+	2. Make research accessible to people starting out (like myself a few weeks ago!) who would like to learn about concepts like PCDs, sparsity bottlenecks, AutoInterp through a project which holds your hand through each step
+- Hopefully fellow students who don't have a ton of compute on hand can find this as a useful guide into getting into AI Safety research, some theory (linear representation hypothesis, transformer architecture, sparsity), some practical aspects (GPU setup, details (like tokenizer padding and a bit of how  KV Cache/RoPE is affected when you slot in activations)), and repo architecture (`src`, `checkpoints`, uploading to Huggingface)
+## Goal
+1. Reproduce 5 phases of Predictive Concept Decoders by hand (write each line/understand what's happening to as much detail as I can!)
+	1. ✅  Inference Pipeline (E2E with random weights)
+	2. ✅ Pretraining Pipeline
+	3. 📋 Encoder Feature Labelling using AutoInterp Methods
+	4. 📋 SynthSys Dataset Generation
+	5. 📋 FineTuning Pipeline
+2. Create a video series on concepts/how to reproduce each step of the architecture
+	1. Heavily inspired by Andrej Karpathy's [`Let's build GPT: from scratch, in code, spelled out.`](https://www.youtube.com/watch?v=kCc8FmEb1nY)
+3. To Pareto Principle (80-20) this, we will skip the evals/baselines section. Assuming we've followed the paper correctly, we do not need to verify we're doing better than baselines (also this is more for educational purposes)
+## Quick Start
+
+### Download Repo
+```zsh
+git clone git@github.com:Ky-Ng/repro-pcd.git
 ```
 
-The Subject Model will respond 
+### Pull Down Checkpoints
+- Note: the repo where the checkpoints live is `kylelovesllms/hand-repro-pcd`
 
-```
-<ASSISTANT>: A dress and high heels.
-```
-
-3. Use the Subject Model to judge the conversation transcript if the model's `<ASSISTANT>` output is consistent with the (prototypical) attribute given in the `<SYSTEM>` prompt, add this `<SYSTEM>` and `<USER>` prompt to the dataset
-
-4. Generate MCQ prompts/answers for the decoder to learn (note during training only the `<USER>` activations are added in, but the `<SYSTEM>` prompt is not)
-
-Prompt input
-```
-[Patch in Activations from the Subject model's <USER> prompt] +
-<USER> What does the model think the gender of the user is? (A) Female (B) Male (C) Non-binary (D) None of the Above
+1. To pull down a specific checkpoint (e.g. PCD trained on 20K steps, at step 20,000)
+```zsh
+huggingface-cli download kylelovesllms/hand-repro-pcd \
+    --include "checkpoints/steps_20K/step_20000/*" \
+    --local-dir "./out/checkpoints/steps_20K/step_20000/*"
 ```
 
-Single Token Output label
+2. To pull down all checkpoints  
+```zsh
+huggingface-cli download kylelovesllms/hand-repro-pcd \
+    --include "checkpoints/steps_20K/*" \
+    --local-dir "./out/checkpoints/steps_20K"
 ```
-<ASSISTANT>: A
+### Run Evaluation
+
+#### Evaluate the  End-to-End PCD Pipeline from Checkpoint
+ - `prompt` is passed into the `Subject Model` --> Activations passed through the `Encoder` --> Sparse Activations passed as soft tokens to `Decoder Model`
+ - `decoder_question` is passed in as hard tokens after the soft tokens with the chat template
+	 - TODO: Figure out how the chat template should be applied for instruction tuned models (paper seems ambiguous about this)
+```zsh
+python -m evals.evaluate_prompt \
+	--prompt="I am a vegan. I have an allergy to lentils." \
+	--decoder_question="Please advise me on food to make." \
+	--checkpoint="out/checkpoints/steps_20K"
 ```
 
+#### Evaluate the `DecoderModel`
+- Test the capabilities of the `DecoderModel` to have respond in chat template during each training phase (specifically, check after pretraining which only uses FineWeb completions)
 
-#### Generalization
+- Evaluate on random weights
+```zsh
+python -m evals.evaluate_chat \
+	--prompt="I am a vegan. I have an allergy to lentils. Please advise me on food to make." 
+```
 
-Here is the amazing part! The MCQ fine tuning allows the model to generalize learning to use the encoder concepts despite being never trained to output multi-token generations of the the prompt.
+- Optionally specify a checkpoint weights for the decoder model
+```zsh
+python -m evals.evaluate_chat \
+	--prompt="I am a vegan. I have an allergy to lentils. Please advise me on food to make." \
+	--checkpoint="out/checkpoints/steps_20K"
+```
+### Run Tests
 
-![Generalized Multi-token responses](../../assets/projects/pcd/PCD_Deployed.png)
+Each test is a runnable smoke-test script (not pytest) that exercises one component end-to-end on the GPU.
+
+- `test_subject_model.py` — verifies the frozen subject model pipeline: chat-templating, tokenization, generation, and pulling residual-stream activations at `l_read` over the middle-token span.
+```
+python -m tests.test_subject_model
+```
+
+- `test_sparse_encoder.py` — verifies the sparse encoder forward pass (`W_enc` → `TopK` → `W_emb`) on random activations and prints the output shape along with the TopK info dict.
+```
+python -m tests.test_sparse_encoder
+```
+
+- `test_decoder_model.py` — verifies the LoRA-wrapped decoder: `forward_train` under both the FineWeb pretrain layout (soft tokens + suffix) and the SynthSys finetune layout (soft tokens + context + target), `generate` from random soft tokens, and the chat-template path with zero-masked dummy soft tokens.
+```
+python -m tests.test_decoder_model
+```
+
+## Repo Structure
+<img width="3131" height="3248" alt="image" src="https://github.com/user-attachments/assets/7729cea5-cd13-4519-b972-c10c30693d24" />
+
+### Code Structure
+- Claude Code Generated Structure
+```zsh
+repro-pcd/
+├── src/
+│   ├── pcd_config.py                  # Dataclass with all hyperparameters (model, LoRA, training, dataset, paths)
+│   │
+│   ├── architecture/
+│   │   ├── subject_model.py           # Frozen Qwen2.5-1.5B via TransformerLens; forward hook pulls residual-stream activations at l_read
+│   │   ├── sparse_encoder.py          # Encoder/Decoder pair (W_enc → TopK → W_emb) that produces the sparse "soft tokens" and the aux loss for dead-concept revival
+│   │   ├── decoder_model.py           # LoRA-wrapped Qwen instruct model; patches soft tokens in place of the prefix and handles forward_train / generate / chat-template
+│   │   └── pcd_inference_model.py     # End-to-end glue: subject → encoder → decoder for deployment-time generation from a checkpoint
+│   │
+│   ├── data/
+│   │   ├── fine_web_dataset.py        # Downloads + tokenizes FineWeb into fixed 48-token windows (n_prefix + n_middle + n_suffix); yields PyTorch DataLoader
+│   │   └── upload_to_hf.py            # CLI helper to push checkpoints / data caches to a Hugging Face Hub repo
+│   │
+│   ├── training/
+│   │   ├── train_pretraining.py       # Joint Encoder + Decoder-LoRA pretraining loop on FineWeb (next-token loss + L_aux, wandb logging, periodic checkpoints)
+│   │   └── utils.py                   # save_checkpoint / load_checkpoint (encoder.pt + decoder_lora/adapter_model.safetensors) + log_metrics
+│   │
+│   └── entrypoints/
+│       └── pretrain.py                # `python -m src.entrypoints.pretrain --run-name ...` CLI that calls training/train_pretraining.train
+│
+├── evals/
+│   ├── evaluate_prompt.py             # Runs the full PCD pipeline (subject → encoder → decoder) on a user prompt from a checkpoint
+│   └── evaluate_chat.py               # Probes whether chat-template / instruction-following survives FineWeb pretraining by feeding zero-masked dummy soft tokens + a chat-templated prompt
+│
+├── tests/
+│   ├── test_subject_model.py          # Smoke-tests activation extraction at l_read and the chat-template path
+│   ├── test_sparse_encoder.py         # Smoke-tests forward pass, TopK sparsity, and auxiliary-loss shapes
+│   └── test_decoder_model.py          # Smoke-tests forward_train (pretrain + finetune layouts) and generate, including the chat-template path
+│
+├── out/                               # (gitignored) wandb runs, data_cache/, and checkpoints/<run-name>/step_<N>/{encoder.pt, decoder_lora/, optimizer.pt}
+├── requirements.txt
+└── README.md
+```
